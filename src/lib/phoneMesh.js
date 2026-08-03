@@ -32,7 +32,7 @@ export function disposeObject(object) {
   })
 }
 
-function createRoundedRectShape(width, height, radius) {
+export function createRoundedRectShape(width, height, radius) {
   const x = -width / 2
   const y = -height / 2
   const r = Math.min(radius, width / 2, height / 2)

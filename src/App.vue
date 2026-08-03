@@ -1,7 +1,6 @@
 <script setup>
 import { defineAsyncComponent } from 'vue'
 import NavBar from '@/components/NavBar.vue'
-import SiteFooter from '@/components/SiteFooter.vue'
 
 const HeroSection = defineAsyncComponent(() => import('@/components/HeroSection.vue'))
 </script>
@@ -25,6 +24,5 @@ const HeroSection = defineAsyncComponent(() => import('@/components/HeroSection.
         </template>
       </Suspense>
     </main>
-    <SiteFooter />
   </div>
 </template>

@@ -1,7 +1,7 @@
 export const site = {
   name: 'Kira',
   version: '1.3.0',
-  tagline: '一个热辣漫画、拷贝漫画的第三方 App',
+  tagline: '一个开源免费的热辣漫画、拷贝漫画的第三方 App',
   heroTitle: 'Kira',
   heroSubtitle: '',
   repoUrl: 'https://github.com/caolib/kira',
