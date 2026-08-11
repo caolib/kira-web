@@ -14,6 +14,18 @@ import {
   disposeObject,
 } from '@/lib/deviceMesh'
 
+// 读取 CSS 变量（如 --brand 的 "217 119 87" 三元组）并转为 0xRRGGBB
+function themeHex(varName, fallback) {
+  if (typeof window === 'undefined') return fallback
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue(varName)
+    .trim()
+  const nums = raw.split(/[\s,/]+/).map(Number).filter((n) => !Number.isNaN(n))
+  if (nums.length < 3) return fallback
+  const [r, g, b] = nums.slice(0, 3)
+  return (r << 16) | (g << 8) | b
+}
+
 /**
  * 电影感设备展台（方案 A）：
  * 一台主设备立在反光台面正中，屏幕用 ShaderMaterial 做
@@ -451,15 +463,17 @@ export function useStageScene(options = {}) {
     renderer.domElement.setAttribute('aria-hidden', 'true')
     container.appendChild(renderer.domElement)
 
-    // —— 灯光 ——
+    // —— 灯光（跟随主题色）——
+    const rimColor = themeHex('--brand', 0xd97757)
+    const accentColor = themeHex('--color-accent', 0xf43f5e)
     scene.add(new THREE.AmbientLight(0xb8a8ff, 0.35))
     const key = new THREE.DirectionalLight(0xffffff, 1.1)
     key.position.set(2.5, 4, 3)
     scene.add(key)
-    const rim = new THREE.DirectionalLight(0x7c3aed, 1.2)
+    const rim = new THREE.DirectionalLight(rimColor, 1.2)
     rim.position.set(-3, 1.5, -2)
     scene.add(rim)
-    const accent = new THREE.PointLight(0xf43f5e, 0.5, 12)
+    const accent = new THREE.PointLight(accentColor, 0.5, 12)
     accent.position.set(1.8, 0.4, 2.5)
     scene.add(accent)
 

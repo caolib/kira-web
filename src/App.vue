@@ -1,8 +1,43 @@
 <script setup>
-import { defineAsyncComponent } from 'vue'
+import { defineAsyncComponent, provide, ref, onMounted, onUnmounted, watch } from 'vue'
 import NavBar from '@/components/NavBar.vue'
+import DocsPage from '@/components/DocsPage.vue'
+import { initTheme } from '@/composables/useTheme'
 
 const HeroSection = defineAsyncComponent(() => import('@/components/HeroSection.vue'))
+
+// 启动时立即应用主题，避免首屏闪烁
+initTheme()
+
+// 视图状态：'home' 展台 / 'docs' 使用说明
+const view = ref(window.location.hash === '#docs' ? 'docs' : 'home')
+
+function setView(next) {
+  if (view.value === next) return
+  view.value = next
+  // 用 hash 记录，便于刷新保持与前进后退感知
+  const target = next === 'docs' ? '#docs' : '#top'
+  if (window.location.hash !== target) {
+    window.history.pushState(null, '', target)
+  }
+  window.scrollTo({ top: 0 })
+}
+
+provide('view', view)
+provide('setView', setView)
+
+// 监听浏览器前进/后退同步视图
+function onPopState() {
+  view.value = window.location.hash === '#docs' ? 'docs' : 'home'
+}
+onMounted(() => window.addEventListener('popstate', onPopState))
+onUnmounted(() => window.removeEventListener('popstate', onPopState))
+
+// 进入说明页时锁定 body 滚动由内层容器接管；回到展台恢复
+// 注意：初始即 docs 时 watch 不触发，需立即同步一次
+watch(view, (v) => {
+  document.body.classList.toggle('view-docs', v === 'docs')
+}, { immediate: true })
 </script>
 
 <template>
@@ -15,7 +50,7 @@ const HeroSection = defineAsyncComponent(() => import('@/components/HeroSection.
     </a>
     <NavBar />
     <main class="flex min-h-0 flex-1 flex-col">
-      <Suspense>
+      <Suspense v-if="view === 'home'">
         <HeroSection />
         <template #fallback>
           <section class="flex min-h-0 flex-1 items-center justify-center pt-14 sm:pt-16">
@@ -23,6 +58,7 @@ const HeroSection = defineAsyncComponent(() => import('@/components/HeroSection.
           </section>
         </template>
       </Suspense>
+      <DocsPage v-else />
     </main>
   </div>
 </template>

@@ -17,7 +17,7 @@ const textureUrls = site.screenshots.map((s) => s.src)
       <div class="neon-orb right-[-5%] top-8 h-64 w-64 bg-accent opacity-25" />
       <div class="neon-orb bottom-4 left-1/3 h-48 w-48 bg-secondary opacity-20" />
 
-      <div class="pointer-events-none absolute inset-x-[6%] inset-y-[2%] -z-10 rounded-full bg-[radial-gradient(circle_at_center,rgb(124_58_237/0.34),transparent_70%)] blur-3xl" />
+      <div class="pointer-events-none absolute inset-x-[6%] inset-y-[2%] -z-10 rounded-full bg-[radial-gradient(circle_at_center,rgb(var(--brand)/0.34),transparent_70%)] blur-3xl" />
       <StageScene
         class="h-full w-full"
         :texture-urls="textureUrls"
