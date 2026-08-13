@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>漫画分享 · Kira</title>
+  <meta name="description" content="有人在 kira 上分享了一部漫画,点击打开查看" />
+  <link rel="icon" href="/favicon.png" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #10141a;
+      color: #e6e9ee;
+      font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      background: #1a2029;
+      border: 1px solid #2a3341;
+      border-radius: 20px;
+      padding: 40px 28px 32px;
+    }
+    .logo { width: 72px; height: 72px; border-radius: 18px; }
+    h1 { font-size: 20px; margin: 16px 0 8px; }
+    .status { font-size: 14px; color: #93a0b4; margin-bottom: 28px; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px 0;
+      border-radius: 12px;
+      font-size: 15px;
+      text-decoration: none;
+      margin-bottom: 12px;
+    }
+    .btn-primary { background: #4f8cff; color: #fff; font-weight: 600; }
+    .btn-secondary { background: transparent; color: #93a0b4; border: 1px solid #2a3341; }
+    .tip { font-size: 12px; color: #5c6878; margin-top: 20px; line-height: 1.6; }
+    .error { color: #ff7a7a; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img class="logo" src="/logo.png" alt="Kira" />
+    <h1>漫画分享</h1>
+    <p class="status" id="status">正在尝试打开 kira…</p>
+    <a class="btn btn-primary" id="open-app" href="#">在 kira 中打开</a>
+    <a class="btn btn-secondary" href="https://github.com/caolib/kira/releases">还没有安装?下载 kira</a>
+    <p class="tip">如果点击没有反应,请复制本页链接到系统浏览器中打开;<br/>已安装 kira 的话,也可以在复制后打开 kira 自动识别。</p>
+  </div>
+  <script>
+    (function () {
+      // 页面经 _redirects 以 200 重写提供,URL 保持 /comic/{pathWord} 不变。
+      var m = location.pathname.match(/^\/comic\/([\w-]+)\/?$/);
+      var status = document.getElementById('status');
+      var openBtn = document.getElementById('open-app');
+      if (!m) {
+        status.textContent = '链接无效';
+        status.className = 'status error';
+        openBtn.removeAttribute('href');
+        return;
+      }
+      var deepLink = 'kira://open/comic/' + m[1];
+      openBtn.href = deepLink;
+      // 自动尝试拉起 App;未安装时静默失败,停留在本页。
+      window.location.href = deepLink;
+    })();
+  </script>
+</body>
+</html>

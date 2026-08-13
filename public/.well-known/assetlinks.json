@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.caolib.kira",
+      "sha256_cert_fingerprints": [
+        "9D:1C:D4:12:68:D1:35:A6:DA:30:0F:40:33:0E:A6:EB:41:45:9D:4D:D6:FE:D4:FD:C7:E7:B1:FD:C5:F2:88:5A"
+      ]
+    }
+  }
+]
