@@ -56,8 +56,10 @@
   </div>
   <script>
     (function () {
-      // 页面经 _redirects 以 200 重写提供,URL 保持 /comic/{pathWord} 不变。
-      var m = location.pathname.match(/^\/comic\/([\w-]+)\/?$/);
+      // 分享链接为 https://{域名}/c/?w={pathWord}(/c/ 是纯静态页,任何环境都可靠);
+      // 同时兼容 /comic/{pathWord} 路径形式(若未来改用 Pages Functions 重写)。
+      var m = location.search.match(/[?&]w=([\w-]+)/) ||
+              location.pathname.match(/^\/comic\/([\w-]+)\/?$/);
       var status = document.getElementById('status');
       var openBtn = document.getElementById('open-app');
       if (!m) {
