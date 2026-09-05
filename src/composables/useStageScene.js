@@ -14,16 +14,27 @@ import {
   disposeObject,
 } from '@/lib/deviceMesh'
 
-// 读取 CSS 变量（如 --brand 的 "217 119 87" 三元组）并转为 0xRRGGBB
+// 读取 CSS 变量（如 --brand 的 "217 119 87" 三元组或 "#000000"）并转为 0xRRGGBB
 function themeHex(varName, fallback) {
   if (typeof window === 'undefined') return fallback
   const raw = getComputedStyle(document.documentElement)
     .getPropertyValue(varName)
     .trim()
+  if (raw.startsWith('#')) {
+    const hex = raw.length === 4 ? raw.slice(1).replace(/./g, '$&$&') : raw.slice(1)
+    const int = parseInt(hex, 16)
+    if (!Number.isNaN(int)) return int
+  }
   const nums = raw.split(/[\s,/]+/).map(Number).filter((n) => !Number.isNaN(n))
   if (nums.length < 3) return fallback
   const [r, g, b] = nums.slice(0, 3)
   return (r << 16) | (g << 8) | b
+}
+
+/** 展台氛围参数：清屏/雾统一取 --stage-bg（两套主题均为纯黑） */
+function stagePalette() {
+  const base = themeHex('--stage-bg', 0x000000)
+  return { base, fog: base }
 }
 
 /**
@@ -94,8 +105,11 @@ const ARC_SPAN = 1.0 // rad，±1.0
 const CAMERA_BASE_Y = 1.0
 const CAMERA_RADIUS = 4.1
 const CAMERA_RADIUS_MOBILE = 5.0
-/** 视线落点：略低于机身中心（~1.03），让手机上移填满顶部空间 */
-const LOOK_AT_Y = 0.88
+/** 视线落点：画布延伸到顶栏背后后，落点略高于机身中心（~1.03），
+ * 让手机整体下移、顶部让出顶栏高度不与之重叠 */
+const LOOK_AT_Y_DESKTOP = 1.06
+const LOOK_AT_Y_MOBILE = 0.99
+let lookAtY = LOOK_AT_Y_DESKTOP
 
 export function useStageScene(options = {}) {
   const { autoCycleMs = 4500 } = options
@@ -114,6 +128,7 @@ export function useStageScene(options = {}) {
   let textureLoader = null
   let animationId = 0
   let resizeObserver = null
+  let themeObserver = null
   let reducedMotion = false
   let isMobile = false
   let disposed = false
@@ -125,6 +140,12 @@ export function useStageScene(options = {}) {
   let bgDevices = []
   let floor = null
   let contactShadow = null
+
+  // 点击主设备回调 + 射线拾取（点击屏幕放大预览）
+  let onScreenClickCb = null
+  let autoCyclePaused = false
+  const raycaster = new THREE.Raycaster()
+  const pointerNdc = new THREE.Vector2()
 
   const textureCache = new Map()
 
@@ -365,6 +386,28 @@ export function useStageScene(options = {}) {
     mouseY = -((event.clientY / window.innerHeight) * 2 - 1)
   }
 
+  /** 射线检测点击/悬停是否落在主设备上 */
+  function pickMainDevice(event) {
+    if (!renderer || !camera || !mainDevice) return false
+    const rect = renderer.domElement.getBoundingClientRect()
+    if (!rect.width || !rect.height) return false
+    pointerNdc.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    raycaster.setFromCamera(pointerNdc, camera)
+    return raycaster.intersectObject(mainDevice, true).length > 0
+  }
+
+  function onCanvasClick(event) {
+    if (pickMainDevice(event)) onScreenClickCb?.()
+  }
+
+  function onCanvasPointerMove(event) {
+    if (event.pointerType && event.pointerType !== 'mouse') return
+    renderer.domElement.style.cursor = pickMainDevice(event) ? 'pointer' : ''
+  }
+
   function animate() {
     if (disposed) return
     animationId = requestAnimationFrame(animate)
@@ -396,9 +439,10 @@ export function useStageScene(options = {}) {
       setDeviceOpacity(dev, next)
     }
 
-    // 自动轮播
+    // 自动轮播（预览打开时暂停）
     if (
       !reducedMotion &&
+      !autoCyclePaused &&
       textureUrls.length > 1 &&
       !trans.active &&
       now >= nextAutoAt
@@ -421,17 +465,19 @@ export function useStageScene(options = {}) {
       camY,
       Math.cos(camAz) * camRadius,
     )
-    camera.lookAt(0, LOOK_AT_Y, 0)
+    camera.lookAt(0, lookAtY, 0)
 
     if (composer) composer.render()
     else renderer.render(scene, camera)
   }
 
-  function mount(el, { reduced = false, urls = [] } = {}) {
+  function mount(el, { reduced = false, urls = [], onScreenClick = null } = {}) {
     container = el
     reducedMotion = reduced
+    onScreenClickCb = onScreenClick
     isMobile = window.matchMedia('(max-width: 768px)').matches
     camRadius = isMobile ? CAMERA_RADIUS_MOBILE : CAMERA_RADIUS
+    lookAtY = isMobile ? LOOK_AT_Y_MOBILE : LOOK_AT_Y_DESKTOP
     disposed = false
     nextAutoAt = performance.now() + 1500
 
@@ -444,16 +490,33 @@ export function useStageScene(options = {}) {
     clock = new THREE.Clock()
     textureLoader = new THREE.TextureLoader()
     scene = new THREE.Scene()
-    scene.fog = new THREE.FogExp2(0x0f0f23, 0.055)
+    // 雾色/清屏色统一取 --stage-bg（纯黑）
+    const palette = stagePalette()
+    scene.fog = new THREE.FogExp2(palette.fog, 0.055)
 
     camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100)
     camera.position.set(0, CAMERA_BASE_Y, camRadius)
-    camera.lookAt(0, 1.0, 0)
+    camera.lookAt(0, lookAtY, 0)
 
     renderer = new THREE.WebGLRenderer({
-      antialias: !isMobile,
+      // 移动端没有 composer，靠这里开 MSAA；桌面端走 composer，
+      // 由下方带 samples 的渲染目标负责抗锯齿
+      antialias: true,
       alpha: true,
       powerPreference: 'high-performance',
+    })
+    // 画布空区直接填 --stage-bg：canvas 经 composer 输出后实际不透明，
+    // 用背景色填充可与 DOM 背景无缝衔接，顶栏透明浮在画布上也不出分界
+    renderer.setClearColor(palette.base, 1)
+    // 主题切换时同步清屏色与雾色（data-theme 属性变化）
+    themeObserver = new MutationObserver(() => {
+      const p = stagePalette()
+      renderer?.setClearColor(p.base, 1)
+      if (scene?.fog) scene.fog.color.setHex(p.fog)
+    })
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
     })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -466,7 +529,7 @@ export function useStageScene(options = {}) {
     // —— 灯光（跟随主题色）——
     const rimColor = themeHex('--brand', 0xd97757)
     const accentColor = themeHex('--color-accent', 0xf43f5e)
-    scene.add(new THREE.AmbientLight(0xb8a8ff, 0.35))
+    scene.add(new THREE.AmbientLight(0xffe2cc, 0.35))
     const key = new THREE.DirectionalLight(0xffffff, 1.1)
     key.position.set(2.5, 4, 3)
     scene.add(key)
@@ -478,7 +541,13 @@ export function useStageScene(options = {}) {
     scene.add(accent)
 
     // —— 反光台面（异步 import Reflector）——
-    createReflectiveFloor({ size: 12, tint: 0x0a0a14, darkness: 0.72 })
+    createReflectiveFloor({
+      size: 12,
+      tint: 0x0d0b09,
+      darkness: 0.72,
+      // 倒影分辨率加倍，压掉倒影里手机边缘的锯齿
+      textureSize: isMobile ? 1024 : 2048,
+    })
       .then((f) => {
         if (disposed) {
           disposeObject(f)
@@ -522,7 +591,13 @@ export function useStageScene(options = {}) {
     // —— Bloom 后处理（移动端直出）——
     if (!isMobile) {
       try {
-        composer = new EffectComposer(renderer)
+        // EffectComposer 默认渲染目标不带多重采样，renderer 的 antialias
+        // 不生效，几何边缘会出锯齿；传入带 samples 的目标恢复 MSAA
+        const aaTarget = new THREE.WebGLRenderTarget(1, 1, {
+          type: THREE.HalfFloatType,
+          samples: 4,
+        })
+        composer = new EffectComposer(renderer, aaTarget)
         composer.addPass(new RenderPass(scene, camera))
         bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.28, 0.4, 0.92)
         composer.addPass(bloomPass)
@@ -542,6 +617,10 @@ export function useStageScene(options = {}) {
     resizeObserver.observe(container)
 
     window.addEventListener('pointermove', onPointerMove, { passive: true })
+    renderer.domElement.addEventListener('click', onCanvasClick)
+    renderer.domElement.addEventListener('pointermove', onCanvasPointerMove, {
+      passive: true,
+    })
     animate()
     return true
   }
@@ -551,12 +630,22 @@ export function useStageScene(options = {}) {
     if (value) completeTransition()
   }
 
+  /** 大图预览打开时暂停自动轮播，关闭后重新计时再恢复 */
+  function setAutoCyclePaused(value) {
+    autoCyclePaused = value
+    nextAutoAt = performance.now() + autoCycleMs
+  }
+
   function dispose() {
     disposed = true
     cancelAnimationFrame(animationId)
     resizeObserver?.disconnect()
     resizeObserver = null
+    themeObserver?.disconnect()
+    themeObserver = null
     window.removeEventListener('pointermove', onPointerMove)
+    renderer?.domElement.removeEventListener('click', onCanvasClick)
+    renderer?.domElement.removeEventListener('pointermove', onCanvasPointerMove)
 
     if (mainDevice) {
       scene?.remove(mainDevice)
@@ -618,6 +707,7 @@ export function useStageScene(options = {}) {
     dispose,
     setTextureUrls,
     setReducedMotion,
+    setAutoCyclePaused,
     nextSlide,
     prevSlide,
     goToIndex,

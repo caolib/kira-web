@@ -15,16 +15,25 @@ const view = ref(window.location.hash === '#docs' ? 'docs' : 'home')
 function setView(next) {
   if (view.value === next) return
   view.value = next
-  // 用 hash 记录，便于刷新保持与前进后退感知
-  const target = next === 'docs' ? '#docs' : '#top'
-  if (window.location.hash !== target) {
-    window.history.pushState(null, '', target)
+  // 首页不写 hash，避免地址栏出现 #top；仅说明页用 #docs 便于刷新保持
+  if (next === 'docs') {
+    if (window.location.hash !== '#docs') {
+      window.history.pushState(null, '', '#docs')
+    }
+  } else if (window.location.hash) {
+    window.history.pushState(null, '', window.location.pathname + window.location.search)
   }
   window.scrollTo({ top: 0 })
 }
 
 provide('view', view)
 provide('setView', setView)
+
+// 无障碍跳转：JS 滚动到主内容，避免地址栏出现 #top
+function skipToMain() {
+  document.getElementById('top')?.scrollIntoView()
+  document.getElementById('top')?.focus?.()
+}
 
 // 监听浏览器前进/后退同步视图
 function onPopState() {
@@ -45,6 +54,7 @@ watch(view, (v) => {
     <a
       href="#top"
       class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-card focus:px-3 focus:py-2 focus:text-foreground"
+      @click.prevent="skipToMain"
     >
       跳到主要内容
     </a>

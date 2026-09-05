@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  /* 默认（深色）值；浅色主题通过 [data-theme="light"] 覆盖同名变量 */
-  --color-background: #0f0f23;
-  --color-card: #1e1c35;
+  /* 默认（深色）值；浅色主题通过 [data-theme="light"] 覆盖同名变量
+     两套主题底色均为纯黑，仅强调色有别 */
+  --color-background: #000000;
+  --color-card: #211d19;
   --color-foreground: #e2e8f0;
   --color-muted: #94a3b8;
   --color-primary: #d97757;
   --color-secondary: #e79d81;
   --color-accent: #f43f5e;
-  --color-border: rgb(217 119 87 / 0.35);
+  /* 中性描边色：随主题的柔和灰，避免品牌橙红描边到处发红 */
+  --color-border: rgb(148 163 184 / 0.2);
   --color-brand-blue: #166ff3;
   --font-heading: "JetBrains Mono", "Cascadia Code", "汉仪有圆", "Anthropicons-Variable", "kanzhun-mix", FontAwesome, system-ui, sans-serif;
   --font-body: "JetBrains Mono", "Cascadia Code", "汉仪有圆", "Anthropicons-Variable", "kanzhun-mix", FontAwesome, system-ui, sans-serif;
@@ -28,9 +30,9 @@
   --brand-strong: 180 90 60;           /* #b45a3c */
 
   /* 文档/卡片表面与强调色（深色默认） */
-  --surface-glass-a: rgb(30 28 53 / 0.92);
-  --surface-glass-b: rgb(15 15 35 / 0.8);
-  --surface-code-bg: rgb(10 10 20 / 0.7);
+  --surface-glass-a: rgb(33 29 25 / 0.92);
+  --surface-glass-b: rgb(20 18 16 / 0.8);
+  --surface-code-bg: rgb(16 14 12 / 0.7);
   --heading-color: #ffffff;
   --strong-color: #ffffff;
   --link-hover: #ffffff;
@@ -44,7 +46,12 @@
   --hover-tint-strong: rgb(var(--brand) / 0.18);
   --selection-bg: rgb(var(--brand) / 0.4);
   --shadow-glow: 0 0 40px rgb(var(--brand) / 0.25);
-  --btn-secondary-bg: rgb(30 28 53 / 0.7);
+  --btn-secondary-bg: rgb(33 29 25 / 0.7);
+
+  /* 主页展台渲染背景与页面底色一致：纯黑 */
+  --stage-bg: #000000;
+  /* 卡片基础投影：浅色主题下大幅减淡，避免黑影发闷 */
+  --shadow-card: 6px 12px 32px rgb(0 0 0 / 0.35);
 }
 
 :root[data-theme="light"] {
@@ -52,33 +59,39 @@
   --brand-soft: 180 90 60;
   --brand-strong: 140 60 38;
 
-  --color-background: #f7f4f0;
+  /* 浅色主题：中性浅灰底（不偏黄、不刺眼），白色卡片 */
+  --color-background: #f0f0f0;
   --color-card: #ffffff;
-  --color-foreground: #2b2620;
-  --color-muted: #7a7066;
+  --color-foreground: #262626;
+  --color-muted: #6f6f6f;
   --color-primary: #d97757;
   --color-secondary: #b45a3c;
   --color-accent: #d64b56;
-  --color-border: rgb(217 119 87 / 0.32);
+  --color-border: rgb(0 0 0 / 0.1);
   --color-brand-blue: #166ff3;
 
-  --surface-glass-a: rgb(255 255 255 / 0.92);
-  --surface-glass-b: rgb(247 244 240 / 0.85);
-  --surface-code-bg: rgb(45 40 34 / 0.05);
-  --heading-color: #1a1510;
-  --strong-color: #1a1510;
-  --link-hover: #b45a3c;
+  --surface-glass-a: rgb(255 255 255 / 0.95);
+  --surface-glass-b: rgb(240 240 240 / 0.9);
+  --surface-code-bg: rgb(0 0 0 / 0.05);
+  --heading-color: #1a1a1a;
+  --strong-color: #1a1a1a;
+  --link-hover: #8f4326;
   --code-fg: #b45a3c;
-  --code-bg: rgb(var(--brand) / 0.12);
-  --table-th-bg: rgb(var(--brand) / 0.12);
+  --code-bg: rgb(var(--brand) / 0.1);
+  --table-th-bg: rgb(var(--brand) / 0.1);
   --table-even-bg: rgb(var(--brand) / 0.04);
-  --blockquote-bg: rgb(var(--brand) / 0.06);
-  --h2-underline: rgb(var(--brand) / 0.22);
-  --hover-tint: rgb(var(--brand) / 0.1);
-  --hover-tint-strong: rgb(var(--brand) / 0.16);
-  --selection-bg: rgb(var(--brand) / 0.32);
-  --shadow-glow: 0 8px 30px rgb(var(--brand) / 0.16);
-  --btn-secondary-bg: rgb(255 255 255 / 0.7);
+  --blockquote-bg: rgb(var(--brand) / 0.05);
+  --h2-underline: rgb(var(--brand) / 0.2);
+  --hover-tint: rgb(var(--brand) / 0.09);
+  --hover-tint-strong: rgb(var(--brand) / 0.15);
+  --selection-bg: rgb(var(--brand) / 0.28);
+  --shadow-glow: 0 12px 32px rgb(0 0 0 / 0.08);
+  --btn-secondary-bg: rgb(255 255 255 / 0.85);
+
+  /* 主页展台渲染背景：两套主题都纯黑（仅此区域） */
+  --stage-bg: #000000;
+  /* 右下双向偏移：影子同时落在右侧与下方，模糊让四周留柔影 */
+  --shadow-card: 6px 12px 32px rgb(0 0 0 / 0.12);
 }
 
 @layer base {
@@ -164,7 +177,7 @@
     );
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
-    box-shadow: 0 12px 40px rgb(0 0 0 / 0.35), var(--shadow-glow);
+    box-shadow: var(--shadow-card), var(--shadow-glow);
     backdrop-filter: blur(12px);
   }
 
@@ -253,7 +266,8 @@
     padding: 1.5rem 1.25rem;
     background: linear-gradient(145deg, var(--surface-glass-a), var(--surface-glass-b));
     border: 1px solid var(--color-border);
-    box-shadow: 0 12px 40px rgb(0 0 0 / 0.35), var(--shadow-glow);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card), var(--shadow-glow);
     backdrop-filter: blur(12px);
   }
 
@@ -490,6 +504,14 @@
     overflow: hidden;
   }
 
+  /* 主页展台的画布是纯黑，顶栏浮在其上时固定用浅色文字/深色玻璃按钮，
+     避免浅色主题的深色文字落进黑色背景里看不见 */
+  .nav-on-stage {
+    --color-foreground: #ece5dc;
+    --color-muted: #9a9089;
+    --btn-secondary-bg: rgb(33 29 25 / 0.7);
+  }
+
   /* 说明页：根容器固定为视口高度，建立 flex 高度链，
      使 <main> 的 flex-1 收缩并让内层内容区滚动 */
   body.view-docs > #app > div,
@@ -501,6 +523,9 @@
   .docs-content {
     scrollbar-width: thin;
     scrollbar-color: rgb(148 163 184 / 0.15) transparent;
+    /* 卡片投影（6px/12px 偏移 + 32px 模糊）需要绘制空间，
+       否则会被滚动容器的 overflow 裁掉左右两侧 */
+    padding: 12px 20px 32px 12px;
   }
   .docs-content::-webkit-scrollbar {
     width: 6px;

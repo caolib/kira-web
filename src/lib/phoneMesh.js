@@ -50,7 +50,7 @@ export function createRoundedRectShape(width, height, radius) {
 }
 
 /** 带正确 UV 的圆角矩形平面，贴图完整显示且不裁切圆角区域 */
-export function createRoundedRectGeometry(width, height, radius, curveSegments = 16) {
+export function createRoundedRectGeometry(width, height, radius, curveSegments = 24) {
   const shape = createRoundedRectShape(width, height, radius)
   const geo = new THREE.ShapeGeometry(shape, curveSegments)
   // Shape 已以原点为中心，无需 center()；补 UV

@@ -37,8 +37,8 @@ function createBodyGeometry(width, height, radius) {
     bevelEnabled: true,
     bevelThickness: 0.008,
     bevelSize: 0.008,
-    bevelSegments: 3,
-    curveSegments: 24,
+    bevelSegments: 4,
+    curveSegments: 36,
   })
   geo.translate(0, 0, -BODY_DEPTH / 2)
   geo.computeVertexNormals()
@@ -200,11 +200,16 @@ export function createBlurredTexture(srcTex, { blur = 9, brightness = 0.62, widt
 }
 
 /** 深色反光台面：Reflector 真反射 + 深色半透明罩层压暗，营造抛光黑玻璃感 */
-export async function createReflectiveFloor({ size = 14, tint = 0x0a0a14, darkness = 0.72 } = {}) {
+export async function createReflectiveFloor({
+  size = 14,
+  tint = 0x0d0b09,
+  darkness = 0.72,
+  textureSize = 1024,
+} = {}) {
   const { Reflector } = await import('three/examples/jsm/objects/Reflector.js')
   const reflector = new Reflector(new THREE.CircleGeometry(size, 64), {
-    textureWidth: 1024,
-    textureHeight: 1024,
+    textureWidth: textureSize,
+    textureHeight: textureSize,
     color: 0x808090,
     clipBias: 0.003,
   })
