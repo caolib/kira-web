@@ -11,6 +11,7 @@ import {
   setDeviceBrightness,
   createContactShadow,
   createReflectiveFloor,
+  clearDeviceGeometryCache,
   disposeObject,
 } from '@/lib/deviceMesh'
 
@@ -99,6 +100,8 @@ const SCREEN_FRAGMENT = /* glsl */ `
 `
 
 const TRANSITION_DURATION = 1.25 // s
+const IDLE_FPS = 30 // 空闲时段渲染帧率上限（过渡/交互期间恢复满帧）
+const POINTER_GRACE_MS = 1000 // 指针移动后维持满帧的时长
 const ARC_RADIUS = 3.4
 const ARC_CENTER_Z = -1.2
 const ARC_SPAN = 1.0 // rad，±1.0
@@ -161,6 +164,8 @@ export function useStageScene(options = {}) {
   // 相机漂移 / 视差
   let mouseX = 0
   let mouseY = 0
+  let lastPointerAt = 0
+  let lastRenderAt = 0
   let camAz = 0
   let camY = CAMERA_BASE_Y
   let camRadius = CAMERA_RADIUS
@@ -186,8 +191,11 @@ export function useStageScene(options = {}) {
     camera.aspect = width / height
     camera.updateProjectionMatrix()
     if (composer) {
-      composer.setPixelRatio?.(renderer.getPixelRatio())
+      const dpr = renderer.getPixelRatio()
+      composer.setPixelRatio?.(dpr)
       composer.setSize(width, height)
+      // Bloom 模糊链跑在半分辨率上：辉光本身是模糊，视觉几乎无差，填充率减半
+      bloomPass?.setSize?.((width * dpr) / 2, (height * dpr) / 2)
     }
   }
 
@@ -382,6 +390,7 @@ export function useStageScene(options = {}) {
   }
 
   function onPointerMove(event) {
+    lastPointerAt = performance.now()
     mouseX = (event.clientX / window.innerWidth) * 2 - 1
     mouseY = -((event.clientY / window.innerHeight) * 2 - 1)
   }
@@ -405,6 +414,7 @@ export function useStageScene(options = {}) {
 
   function onCanvasPointerMove(event) {
     if (event.pointerType && event.pointerType !== 'mouse') return
+    lastPointerAt = performance.now()
     renderer.domElement.style.cursor = pickMainDevice(event) ? 'pointer' : ''
   }
 
@@ -415,6 +425,25 @@ export function useStageScene(options = {}) {
 
     elapsedTime = clock.getElapsedTime()
     const now = performance.now()
+
+    // —— 渲染节流 ——
+    // 换图过渡与指针交互后保持满帧；空闲时段限 30fps；
+    // reduced-motion 下相机/过渡/透明度全部收敛后画面完全静止，不再逐帧重绘
+    const pointerActive = now - lastPointerAt < POINTER_GRACE_MS
+    if (!trans.active && !pointerActive) {
+      if (reducedMotion) {
+        const bgAnimating = bgDevices.some(
+          (dev) =>
+            dev &&
+            (dev.userData.currentOpacity ?? 1) !==
+              (dev.userData.targetOpacity ?? 1),
+        )
+        if (!bgAnimating) return
+      } else if (now - lastRenderAt < 1000 / IDLE_FPS) {
+        return
+      }
+    }
+    lastRenderAt = now
 
     // 推进屏幕过渡
     if (trans.active) {
@@ -545,8 +574,8 @@ export function useStageScene(options = {}) {
       size: 12,
       tint: 0x0d0b09,
       darkness: 0.72,
-      // 倒影分辨率加倍，压掉倒影里手机边缘的锯齿
-      textureSize: isMobile ? 1024 : 2048,
+      // 倒影纹理减半以省填充率；倒影本身经暗色罩层压暗，降档不易察觉
+      textureSize: isMobile ? 768 : 1024,
     })
       .then((f) => {
         if (disposed) {
@@ -595,7 +624,7 @@ export function useStageScene(options = {}) {
         // 不生效，几何边缘会出锯齿；传入带 samples 的目标恢复 MSAA
         const aaTarget = new THREE.WebGLRenderTarget(1, 1, {
           type: THREE.HalfFloatType,
-          samples: 4,
+          samples: 2,
         })
         composer = new EffectComposer(renderer, aaTarget)
         composer.addPass(new RenderPass(scene, camera))
@@ -675,6 +704,7 @@ export function useStageScene(options = {}) {
 
     for (const tex of textureCache.values()) tex.dispose()
     textureCache.clear()
+    clearDeviceGeometryCache()
 
     composer?.dispose?.()
     composer = null

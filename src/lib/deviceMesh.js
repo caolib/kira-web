@@ -30,19 +30,50 @@ const BUTTON_COLOR = 0x0b0b10
 
 export { SCREEN_MAX_W, SCREEN_MAX_H, BEZEL, BODY_DEPTH }
 
-function createBodyGeometry(width, height, radius) {
-  const shape = createRoundedRectShape(width, height, radius)
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: BODY_DEPTH,
-    bevelEnabled: true,
-    bevelThickness: 0.008,
-    bevelSize: 0.008,
-    bevelSegments: 4,
-    curveSegments: 36,
-  })
-  geo.translate(0, 0, -BODY_DEPTH / 2)
-  geo.computeVertexNormals()
+/** 按尺寸缓存设备几何：轮播换图不再反复销毁重建，同比例设备共享同一份 */
+const geometryCache = new Map()
+
+function cachedGeometry(key, create) {
+  let geo = geometryCache.get(key)
+  if (!geo) {
+    geo = create()
+    geo.userData.cached = true
+    geometryCache.set(key, geo)
+  }
   return geo
+}
+
+/** 场景销毁时统一释放缓存几何（disposeObject 会跳过它们） */
+export function clearDeviceGeometryCache() {
+  for (const geo of geometryCache.values()) geo.dispose()
+  geometryCache.clear()
+}
+
+function createBodyGeometry(width, height, radius) {
+  return cachedGeometry(
+    `body|${width.toFixed(3)}|${height.toFixed(3)}|${radius.toFixed(3)}`,
+    () => {
+      const shape = createRoundedRectShape(width, height, radius)
+      const geo = new THREE.ExtrudeGeometry(shape, {
+        depth: BODY_DEPTH,
+        bevelEnabled: true,
+        bevelThickness: 0.008,
+        bevelSize: 0.008,
+        bevelSegments: 4,
+        curveSegments: 36,
+      })
+      geo.translate(0, 0, -BODY_DEPTH / 2)
+      geo.computeVertexNormals()
+      return geo
+    },
+  )
+}
+
+function createScreenGeometry(width, height, radius) {
+  return cachedGeometry(
+    `screen|${width.toFixed(3)}|${height.toFixed(3)}|${radius.toFixed(3)}`,
+    () => createRoundedRectGeometry(width, height, radius),
+  )
 }
 
 /**
@@ -114,11 +145,11 @@ export function fitDeviceToAspect(device, aspect) {
   const screen = device.userData.screen
   const [volumeBtn, powerBtn] = device.userData.buttons
 
-  body.geometry.dispose()
+  if (!body.geometry.userData?.cached) body.geometry.dispose()
   body.geometry = createBodyGeometry(bw, bh, bodyR)
 
-  screen.geometry.dispose()
-  screen.geometry = createRoundedRectGeometry(sw, sh, screenR)
+  if (!screen.geometry.userData?.cached) screen.geometry.dispose()
+  screen.geometry = createScreenGeometry(sw, sh, screenR)
   screen.position.z = SCREEN_Z
 
   volumeBtn.position.set(bw / 2 + 0.006, sh * 0.18, 0)

@@ -27,7 +27,10 @@ export function disposeMaterial(material) {
 export function disposeObject(object) {
   if (!object) return
   object.traverse?.((child) => {
-    if (child.geometry) child.geometry.dispose()
+    // 带 cached 标记的几何由 clearDeviceGeometryCache 统一释放，拆单个对象时跳过
+    if (child.geometry && !child.geometry.userData?.cached) {
+      child.geometry.dispose()
+    }
     if (child.material) disposeMaterial(child.material)
   })
 }
