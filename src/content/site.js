@@ -13,6 +13,7 @@ export const site = {
   features: [],
   screenshots: [
     { id: 'shot-1', title: '界面截图 1', src: '/screenshots/1.jpg' },
+    { id: 'shot-desktop', title: '桌面端截图', src: '/screenshots/desktop-1.png' },
     { id: 'shot-2', title: '界面截图 2', src: '/screenshots/2.jpg' },
     { id: 'shot-3', title: '界面截图 3', src: '/screenshots/3.jpg' },
     { id: 'shot-4', title: '界面截图 4', src: '/screenshots/4.jpg' },

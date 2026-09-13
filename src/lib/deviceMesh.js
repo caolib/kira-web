@@ -6,7 +6,8 @@ import {
 } from './phoneMesh.js'
 
 /**
- * 「真机」设备模型：金属边框机身 + 内嵌屏幕 + 打孔前摄 + 侧边按键。
+ * 「真机」设备模型：金属边框机身 + 内嵌屏幕 + 侧边按键（手机形态）。
+ * 竖屏贴图 → 手机形态；横屏贴图（aspect > 1）→ 平板形态（宽屏、无侧键）。
  * 供展台（A）/ 扇形 Cover Flow（C）等场景共用。
  *
  * 坐标约定：机身中心在原点，屏幕朝 +Z，顶部朝 +Y。
@@ -18,6 +19,10 @@ import {
 
 const SCREEN_MAX_W = 0.92
 const SCREEN_MAX_H = 1.96
+/** 平板（横屏贴图）形态的屏幕最大尺寸：真正的平板体量（iPad 级），
+ * 而非「横过来的手机」；竖屏贴图仍走手机形态 */
+const TABLET_MAX_W = 2.5
+const TABLET_MAX_H = 1.55
 /** 边框（ bezel ）宽度 */
 const BEZEL = 0.05
 const BODY_DEPTH = 0.06
@@ -122,13 +127,23 @@ export function createDeviceMesh() {
   return group
 }
 
-/** 按屏幕宽高比重建机身/屏幕几何（截图加载完成后调用） */
+/** 按屏幕宽高比重建机身/屏幕几何（截图加载完成后调用）。
+ * 横屏贴图（aspect > 1）走平板形态：宽屏机身、无侧键、更圆润的边角 */
 export function fitDeviceToAspect(device, aspect) {
   if (!device || !aspect) return
-  const maxAspect = SCREEN_MAX_W / SCREEN_MAX_H
+  const isTablet = aspect > 1
   let sw
   let sh
-  if (aspect > maxAspect) {
+  if (isTablet) {
+    const maxAspect = TABLET_MAX_W / TABLET_MAX_H
+    if (aspect > maxAspect) {
+      sw = TABLET_MAX_W
+      sh = TABLET_MAX_W / aspect
+    } else {
+      sh = TABLET_MAX_H
+      sw = TABLET_MAX_H * aspect
+    }
+  } else if (aspect > SCREEN_MAX_W / SCREEN_MAX_H) {
     sw = SCREEN_MAX_W
     sh = SCREEN_MAX_W / aspect
   } else {
@@ -138,7 +153,7 @@ export function fitDeviceToAspect(device, aspect) {
 
   const bw = sw + BEZEL * 2
   const bh = sh + BEZEL * 2
-  const bodyR = Math.min(0.17, bw * 0.19, bh * 0.12)
+  const bodyR = Math.min(0.17, bw * 0.19, bh * (isTablet ? 0.16 : 0.12))
   const screenR = Math.max(0.04, bodyR - BEZEL * 0.7)
 
   const body = device.userData.body
@@ -152,9 +167,13 @@ export function fitDeviceToAspect(device, aspect) {
   screen.geometry = createScreenGeometry(sw, sh, screenR)
   screen.position.z = SCREEN_Z
 
+  // 侧键是手机形态细节，平板不渲染
+  volumeBtn.visible = !isTablet
+  powerBtn.visible = !isTablet
   volumeBtn.position.set(bw / 2 + 0.006, sh * 0.18, 0)
   powerBtn.position.set(bw / 2 + 0.006, sh * 0.18 - 0.3, 0)
 
+  device.userData.isTablet = isTablet
   device.userData.screenSize = { width: sw, height: sh, radius: screenR }
   device.userData.bodySize = { width: bw, height: bh, depth: BODY_DEPTH }
 }

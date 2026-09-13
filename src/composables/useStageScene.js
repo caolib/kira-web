@@ -108,11 +108,18 @@ const ARC_SPAN = 1.0 // rad，±1.0
 const CAMERA_BASE_Y = 1.0
 const CAMERA_RADIUS = 4.1
 const CAMERA_RADIUS_MOBILE = 5.0
+/** 桌面端平板态：平板体量大，相机稍拉近让主体撑满画面 */
+const CAMERA_RADIUS_TABLET = 3.8
+/** 移动端平板态：平板更宽，相机后移避免左右裁切（近满宽显示） */
+const CAMERA_RADIUS_MOBILE_TABLET = 8.8
 /** 视线落点：画布延伸到顶栏背后后，落点略高于机身中心（~1.03），
  * 让手机整体下移、顶部让出顶栏高度不与之重叠 */
 const LOOK_AT_Y_DESKTOP = 1.06
 const LOOK_AT_Y_MOBILE = 0.99
+const LOOK_AT_Y_TABLET_DESKTOP = 0.9
+const LOOK_AT_Y_TABLET_MOBILE = 0.85
 let lookAtY = LOOK_AT_Y_DESKTOP
+let lookAtYTarget = LOOK_AT_Y_DESKTOP
 
 export function useStageScene(options = {}) {
   const { autoCycleMs = 4500 } = options
@@ -169,6 +176,7 @@ export function useStageScene(options = {}) {
   let camAz = 0
   let camY = CAMERA_BASE_Y
   let camRadius = CAMERA_RADIUS
+  let camRadiusTarget = CAMERA_RADIUS
 
   function detectWebGL() {
     try {
@@ -254,6 +262,15 @@ export function useStageScene(options = {}) {
       if (img?.width && img?.height) {
         fitDeviceToAspect(mainDevice, img.width / img.height)
       }
+      // 平板形态：移动端相机后移防裁切，接触阴影随之放大（lerp 平滑）
+      const tabletActive = !!mainDevice.userData.isTablet
+      camRadiusTarget = isMobile
+        ? (tabletActive ? CAMERA_RADIUS_MOBILE_TABLET : CAMERA_RADIUS_MOBILE)
+        : (tabletActive ? CAMERA_RADIUS_TABLET : CAMERA_RADIUS)
+      lookAtYTarget = tabletActive
+        ? (isMobile ? LOOK_AT_Y_TABLET_MOBILE : LOOK_AT_Y_TABLET_DESKTOP)
+        : (isMobile ? LOOK_AT_Y_MOBILE : LOOK_AT_Y_DESKTOP)
+      contactShadow?.scale.set(tabletActive ? 1.7 : 1, tabletActive ? 1.3 : 1, 1)
       mainDevice.position.y =
         (mainDevice.userData.bodySize?.height || 2.06) / 2
 
@@ -489,6 +506,8 @@ export function useStageScene(options = {}) {
     }
     camAz += (azTarget - camAz) * 0.04
     camY += (yTarget - camY) * 0.04
+    camRadius += (camRadiusTarget - camRadius) * 0.06
+    lookAtY += (lookAtYTarget - lookAtY) * 0.06
     camera.position.set(
       Math.sin(camAz) * camRadius,
       camY,
@@ -505,8 +524,8 @@ export function useStageScene(options = {}) {
     reducedMotion = reduced
     onScreenClickCb = onScreenClick
     isMobile = window.matchMedia('(max-width: 768px)').matches
-    camRadius = isMobile ? CAMERA_RADIUS_MOBILE : CAMERA_RADIUS
-    lookAtY = isMobile ? LOOK_AT_Y_MOBILE : LOOK_AT_Y_DESKTOP
+    camRadius = camRadiusTarget = isMobile ? CAMERA_RADIUS_MOBILE : CAMERA_RADIUS
+    lookAtY = lookAtYTarget = isMobile ? LOOK_AT_Y_MOBILE : LOOK_AT_Y_DESKTOP
     disposed = false
     nextAutoAt = performance.now() + 1500
 

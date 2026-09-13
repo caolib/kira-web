@@ -125,7 +125,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       class="stage-scene__canvas"
       :class="{ 'stage-scene__canvas--hidden': !webglSupported }"
       role="img"
-      aria-label="Kira 设备展台展示，点击手机可放大查看截图"
+      aria-label="Kira 设备展台展示，点击设备可放大查看截图"
       tabindex="0"
     />
     <DeviceFallback
