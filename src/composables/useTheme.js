@@ -15,7 +15,7 @@ function readStored() {
   return prefersLight ? 'light' : 'dark'
 }
 
-// 将主题应用到 <html data-theme="...">
+// 将主题应用到 <html data-theme="...">，并同步移动端浏览器地址栏主题色
 function applyTheme(value) {
   if (typeof document === 'undefined') return
   const root = document.documentElement
@@ -24,6 +24,9 @@ function applyTheme(value) {
   } else {
     root.setAttribute('data-theme', value)
   }
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', value === 'light' ? '#f0f0f0' : '#000000')
 }
 
 // 初始化：同步存储 → 状态 → DOM

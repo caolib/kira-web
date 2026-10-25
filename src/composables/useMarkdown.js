@@ -85,6 +85,11 @@ export function renderMarkdown(mdText) {
     /<a\s+(?![^>]*\btarget=)/gi,
     '<a target="_blank" rel="noopener noreferrer" ',
   )
+  // 宽表格包一层横向滚动容器，窄屏不撑破布局
+  rawHtml = rawHtml.replace(/<table>/g, '<div class="table-wrap"><table>').replace(
+    /<\/table>/g,
+    '</table></div>',
+  )
   return DOMPurify.sanitize(rawHtml, {
     ADD_ATTR: ['target', 'rel'],
   })

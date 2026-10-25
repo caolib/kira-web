@@ -116,6 +116,24 @@ function onKeydown(e) {
 
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+
+// —— 预览层触摸滑动切图 ——
+let lbTouchX = 0
+let lbTouchY = 0
+
+function onLbTouchStart(e) {
+  lbTouchX = e.touches[0]?.clientX ?? 0
+  lbTouchY = e.touches[0]?.clientY ?? 0
+}
+
+function onLbTouchEnd(e) {
+  const touch = e.changedTouches[0]
+  if (!touch) return
+  const dx = touch.clientX - lbTouchX
+  const dy = touch.clientY - lbTouchY
+  if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return
+  stepLightbox(dx < 0 ? 1 : -1)
+}
 </script>
 
 <template>
@@ -143,6 +161,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           aria-modal="true"
           aria-label="应用截图大图预览"
           @click="closeLightbox"
+          @touchstart.passive="onLbTouchStart"
+          @touchend.passive="onLbTouchEnd"
         >
           <img
             :src="lightboxSrc"

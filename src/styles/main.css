@@ -145,15 +145,20 @@
 
   body {
     margin: 0;
+    /* 先写 vh 兜底旧浏览器，dvh 支持时覆盖，规避移动端地址栏遮挡 */
+    min-height: 100vh;
     min-height: 100dvh;
     background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* iOS Safari 聚焦输入框自动放大（字体 < 16px 时触发） */
+    -webkit-text-size-adjust: 100%;
   }
 
   #app {
+    min-height: 100vh;
     min-height: 100dvh;
   }
 
@@ -393,6 +398,12 @@
     font-size: 0.9em;
   }
 
+  /* 宽表格在窄屏溢出：仅表格自身横向滚动，不影响页面布局 */
+  .prose-docs .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .prose-docs th,
   .prose-docs td {
     padding: 0.6em 0.9em;
@@ -516,6 +527,7 @@
      使 <main> 的 flex-1 收缩并让内层内容区滚动 */
   body.view-docs > #app > div,
   body.view-docs > #app {
+    height: 100vh;
     height: 100dvh;
   }
 
@@ -526,7 +538,16 @@
     /* 卡片投影（6px/12px 偏移 + 32px 模糊）需要绘制空间，
        否则会被滚动容器的 overflow 裁掉左右两侧 */
     padding: 12px 20px 32px 12px;
+    -webkit-overflow-scrolling: touch;
   }
+
+  /* 移动端：减小投影预留空间，正文占满屏宽更易读 */
+  @media (max-width: 640px) {
+    .docs-content {
+      padding: 8px 14px 20px 8px;
+    }
+  }
+
   .docs-content::-webkit-scrollbar {
     width: 6px;
     height: 6px;

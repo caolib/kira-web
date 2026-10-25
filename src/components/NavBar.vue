@@ -28,7 +28,7 @@ function goDocs() {
 
 <template>
   <header
-    class="fixed inset-x-0 top-0 z-50 border-b border-transparent bg-transparent"
+    class="fixed inset-x-0 top-0 z-50 border-b border-transparent bg-transparent pt-[env(safe-area-inset-top,0px)]"
     :class="{ 'nav-on-stage': view === 'home' }"
   >
     <!-- 通栏布局：logo 与右侧按钮各自贴住屏幕两端 -->
@@ -39,7 +39,7 @@ function goDocs() {
         <span class="hidden min-w-0 truncate text-xs text-muted lg:inline">{{ site.tagline }}</span>
       </a>
 
-      <nav class="flex shrink-0 items-center gap-2" aria-label="主导航">
+      <nav class="flex shrink-0 items-center gap-1.5 sm:gap-2" aria-label="主导航">
         <template v-if="view === 'home'">
           <a v-for="item in site.nav" :key="item.id" href="#top"
             class="rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-[rgb(var(--brand)/0.12)] hover:text-foreground"
@@ -68,7 +68,7 @@ function goDocs() {
         </a>
         <a v-if="site.qqGroupUrl" :href="site.qqGroupUrl" target="_blank" rel="noopener noreferrer"
           class="inline-flex items-center gap-1.5 rounded-lg bg-[var(--btn-secondary-bg)] px-2.5 py-2 text-sm font-medium text-foreground transition hover:bg-[rgb(var(--brand)/0.12)] sm:px-3"
-          aria-label="QQ">
+          aria-label="QQ 群">
           <MessageCircle class="h-4 w-4" aria-hidden="true" />
           <span class="hidden sm:inline">QQ</span>
         </a>

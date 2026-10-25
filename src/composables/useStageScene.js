@@ -205,6 +205,21 @@ export function useStageScene(options = {}) {
       // Bloom 模糊链跑在半分辨率上：辉光本身是模糊，视觉几乎无差，填充率减半
       bloomPass?.setSize?.((width * dpr) / 2, (height * dpr) / 2)
     }
+    // 旋转/跨断点：重估移动端标记并按当前形态重算相机距离与视线高度
+    syncMobileCamera()
+  }
+
+  /** 按当前 isMobile 与主设备形态刷新相机目标参数（lerp 平滑过渡） */
+  function syncMobileCamera() {
+    const mobile = window.matchMedia('(max-width: 768px)').matches
+    if (mobile !== isMobile) isMobile = mobile
+    const tabletActive = !!mainDevice?.userData.isTablet
+    camRadiusTarget = isMobile
+      ? (tabletActive ? CAMERA_RADIUS_MOBILE_TABLET : CAMERA_RADIUS_MOBILE)
+      : (tabletActive ? CAMERA_RADIUS_TABLET : CAMERA_RADIUS)
+    lookAtYTarget = tabletActive
+      ? (isMobile ? LOOK_AT_Y_TABLET_MOBILE : LOOK_AT_Y_TABLET_DESKTOP)
+      : (isMobile ? LOOK_AT_Y_MOBILE : LOOK_AT_Y_DESKTOP)
   }
 
   function loadTexture(url) {
@@ -263,13 +278,7 @@ export function useStageScene(options = {}) {
         fitDeviceToAspect(mainDevice, img.width / img.height)
       }
       // 平板形态：移动端相机后移防裁切，接触阴影随之放大（lerp 平滑）
-      const tabletActive = !!mainDevice.userData.isTablet
-      camRadiusTarget = isMobile
-        ? (tabletActive ? CAMERA_RADIUS_MOBILE_TABLET : CAMERA_RADIUS_MOBILE)
-        : (tabletActive ? CAMERA_RADIUS_TABLET : CAMERA_RADIUS)
-      lookAtYTarget = tabletActive
-        ? (isMobile ? LOOK_AT_Y_TABLET_MOBILE : LOOK_AT_Y_TABLET_DESKTOP)
-        : (isMobile ? LOOK_AT_Y_MOBILE : LOOK_AT_Y_DESKTOP)
+      syncMobileCamera()
       contactShadow?.scale.set(tabletActive ? 1.7 : 1, tabletActive ? 1.3 : 1, 1)
       mainDevice.position.y =
         (mainDevice.userData.bodySize?.height || 2.06) / 2
@@ -427,6 +436,42 @@ export function useStageScene(options = {}) {
 
   function onCanvasClick(event) {
     if (pickMainDevice(event)) onScreenClickCb?.()
+  }
+
+  // —— 移动端滑动切换截图（touch 手势，横滑超阈值即翻页）——
+  let touchStartX = 0
+  let touchStartY = 0
+  let touchTracking = false
+
+  function onTouchStart(event) {
+    if (event.touches.length !== 1) {
+      touchTracking = false
+      return
+    }
+    touchStartX = event.touches[0].clientX
+    touchStartY = event.touches[0].clientY
+    touchTracking = true
+  }
+
+  function onTouchMove(event) {
+    // 竖向滑动幅度大时视为滚动意图，取消追踪
+    if (!touchTracking) return
+    const dx = Math.abs(event.touches[0].clientX - touchStartX)
+    const dy = Math.abs(event.touches[0].clientY - touchStartY)
+    if (dy > dx && dy > 12) touchTracking = false
+  }
+
+  function onTouchEnd(event) {
+    if (!touchTracking) return
+    touchTracking = false
+    const touch = event.changedTouches[0]
+    if (!touch) return
+    const dx = touch.clientX - touchStartX
+    const dy = touch.clientY - touchStartY
+    // 水平位移明显且横向占主导才算翻页手势
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return
+    if (dx < 0) nextSlide()
+    else prevSlide()
   }
 
   function onCanvasPointerMove(event) {
@@ -669,6 +714,15 @@ export function useStageScene(options = {}) {
     renderer.domElement.addEventListener('pointermove', onCanvasPointerMove, {
       passive: true,
     })
+    renderer.domElement.addEventListener('touchstart', onTouchStart, {
+      passive: true,
+    })
+    renderer.domElement.addEventListener('touchmove', onTouchMove, {
+      passive: true,
+    })
+    renderer.domElement.addEventListener('touchend', onTouchEnd, {
+      passive: true,
+    })
     animate()
     return true
   }
@@ -694,6 +748,9 @@ export function useStageScene(options = {}) {
     window.removeEventListener('pointermove', onPointerMove)
     renderer?.domElement.removeEventListener('click', onCanvasClick)
     renderer?.domElement.removeEventListener('pointermove', onCanvasPointerMove)
+    renderer?.domElement.removeEventListener('touchstart', onTouchStart)
+    renderer?.domElement.removeEventListener('touchmove', onTouchMove)
+    renderer?.domElement.removeEventListener('touchend', onTouchEnd)
 
     if (mainDevice) {
       scene?.remove(mainDevice)
