@@ -1,11 +1,24 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
-import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 
+// 本地开发/预览与静态部署保持一致，避免 /c/ 被首页回退吞掉。
+function shareEntry(server) {
+  server.middlewares.use((request, response, next) => {
+    const url = new URL(request.url, 'http://localhost')
+    if (url.pathname === '/c/' || url.pathname === '/c') {
+      request.url = `/c/index.html${url.search}`
+    }
+    next()
+  })
+}
+
 export default defineConfig({
-  plugins: [vue(), vueDevTools(), tailwindcss()],
+  plugins: [vue(), {
+    name: 'static-share-entry',
+    configureServer: shareEntry,
+    configurePreviewServer: shareEntry,
+  }],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -14,15 +27,5 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules/three')) return 'three'
-          if (id.includes('node_modules/vue') || id.includes('node_modules/@vue')) return 'vue'
-        },
-      },
-    },
   },
 })

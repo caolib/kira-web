@@ -1,74 +1,51 @@
 <script setup>
-import { defineAsyncComponent, provide, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import NavBar from '@/components/NavBar.vue'
-import DocsPage from '@/components/DocsPage.vue'
-import { initTheme } from '@/composables/useTheme'
+import HomePage from '@/components/HomePage.vue'
+import SiteFooter from '@/components/SiteFooter.vue'
 
-const HeroSection = defineAsyncComponent(() => import('@/components/HeroSection.vue'))
+const DocsPage = defineAsyncComponent(() => import('@/components/DocsPage.vue'))
+const hash = ref(window.location.hash)
+const isDocs = computed(() => /^#docs(?:\/|$)/.test(hash.value))
+const docId = computed(() => hash.value.split('/')[1] || 'getting-started')
+const positions = new Map()
+let previousHash = hash.value
 
-// 启动时立即应用主题，避免首屏闪烁
-initTheme()
-
-// 视图状态：'home' 展台 / 'docs' 使用说明
-const view = ref(window.location.hash === '#docs' ? 'docs' : 'home')
-
-function setView(next) {
-  if (view.value === next) return
-  view.value = next
-  // 首页不写 hash，避免地址栏出现 #top；仅说明页用 #docs 便于刷新保持
-  if (next === 'docs') {
-    if (window.location.hash !== '#docs') {
-      window.history.pushState(null, '', '#docs')
-    }
-  } else if (window.location.hash) {
-    window.history.pushState(null, '', window.location.pathname + window.location.search)
+async function onHashChange() {
+  positions.set(previousHash, window.scrollY)
+  const wasDocs = isDocs.value
+  hash.value = window.location.hash
+  previousHash = hash.value
+  document.title = isDocs.value ? '使用指南 · Kira' : 'Kira — 好故事，值得一页页读下去'
+  await nextTick()
+  if (isDocs.value) {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  } else {
+    const target = document.getElementById(hash.value.slice(1))
+    if (target) target.scrollIntoView()
+    else window.scrollTo({ top: positions.get(hash.value) || 0, behavior: 'instant' })
   }
-  window.scrollTo({ top: 0 })
+  if (wasDocs !== isDocs.value) document.getElementById('main-content')?.focus({ preventScroll: true })
 }
 
-provide('view', view)
-provide('setView', setView)
-
-// 无障碍跳转：JS 滚动到主内容，避免地址栏出现 #top
-function skipToMain() {
-  document.getElementById('top')?.scrollIntoView()
-  document.getElementById('top')?.focus?.()
-}
-
-// 监听浏览器前进/后退同步视图
-function onPopState() {
-  view.value = window.location.hash === '#docs' ? 'docs' : 'home'
-}
-onMounted(() => window.addEventListener('popstate', onPopState))
-onUnmounted(() => window.removeEventListener('popstate', onPopState))
-
-// 进入说明页时锁定 body 滚动由内层容器接管；回到展台恢复
-// 注意：初始即 docs 时 watch 不触发，需立即同步一次
-watch(view, (v) => {
-  document.body.classList.toggle('view-docs', v === 'docs')
-}, { immediate: true })
+onMounted(() => {
+  window.addEventListener('hashchange', onHashChange)
+  if (isDocs.value) document.title = '使用指南 · Kira'
+})
+onUnmounted(() => window.removeEventListener('hashchange', onHashChange))
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col bg-background text-foreground">
-    <a
-      href="#top"
-      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-card focus:px-3 focus:py-2 focus:text-foreground"
-      @click.prevent="skipToMain"
-    >
-      跳到主要内容
-    </a>
-    <NavBar />
-    <main class="flex min-h-0 flex-1 flex-col">
-      <Suspense v-if="view === 'home'">
-        <HeroSection />
-        <template #fallback>
-          <section class="flex min-h-0 flex-1 items-center justify-center pt-14 sm:pt-16">
-            <div class="h-10 w-10 animate-spin rounded-full border-2 border-secondary border-t-transparent" aria-label="加载中" />
-          </section>
-        </template>
-      </Suspense>
-      <DocsPage v-else />
-    </main>
-  </div>
+  <a class="skip-link" href="#main-content" @click.prevent="$refs.main.focus(); $refs.main.scrollIntoView()">跳到主要内容</a>
+  <NavBar :is-docs="isDocs" :current-hash="hash" />
+  <main id="main-content" ref="main" tabindex="-1">
+    <Suspense v-if="isDocs">
+      <DocsPage :doc-id="docId" />
+      <template #fallback>
+        <div class="container document-loading" role="status">正在翻开使用指南…</div>
+      </template>
+    </Suspense>
+    <HomePage v-else />
+  </main>
+  <SiteFooter />
 </template>
