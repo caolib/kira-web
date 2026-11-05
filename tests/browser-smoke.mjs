@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync } from 'node:fs'
 import { chromium } from 'playwright-core'
+import { checkPageAssembly } from './hero-assembly.mjs'
 
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173'
 const executablePath = [
@@ -27,6 +28,7 @@ async function checkPreviewFit(page, label) {
 }
 
 try {
+  await checkPageAssembly(browser, base)
   for (const [width, height] of [[1440, 1000], [1920, 1080], [1024, 768], [768, 1024], [375, 812], [320, 740], [812, 375]]) {
     const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', isMobile: width < 768, hasTouch: width < 768 })
     const page = await context.newPage()

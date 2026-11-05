@@ -6,8 +6,9 @@ const props = defineProps({
   shots: { type: Array, required: true },
   label: { type: String, required: true },
   paused: Boolean,
+  assemblyGroup: { type: String, default: '' },
 })
-const emit = defineEmits(['preview'])
+const emit = defineEmits(['preview', 'interact'])
 const root = ref(null)
 const selected = ref(0)
 const current = computed(() => props.shots[selected.value])
@@ -34,6 +35,7 @@ function finishSwitch() {
 }
 
 function nextImage() {
+  emit('interact')
   if (switching.value || props.shots.length < 2) return
   switching.value = !reducedMotion.value
   selected.value = (selected.value + 1) % props.shots.length
@@ -59,6 +61,7 @@ function onFocusOut(event) {
 }
 
 function activateImage(index) {
+  emit('interact')
   if (index !== selected.value) nextImage()
   else emit('preview', current.value)
 }
@@ -99,12 +102,14 @@ onUnmounted(() => {
     :class="{ 'is-switching': switching }"
     :aria-label="label"
     :data-rotation="canRotate ? 'playing' : 'paused'"
+    :data-assembly-group="assemblyGroup || undefined"
+    :data-build="assemblyGroup ? 'frame' : undefined"
     @mouseenter="hovered = true"
     @mouseleave="hovered = false"
     @focusin="focused = true"
     @focusout="onFocusOut"
   >
-    <div class="screenshot-stack">
+    <div class="screenshot-stack" :data-assembly-anchor="assemblyGroup ? '' : undefined">
       <button
         v-for="(shot, index) in shots"
         :key="shot.id"
@@ -112,11 +117,17 @@ onUnmounted(() => {
         class="phone-shot stack-shot"
         :class="index === selected ? 'is-front' : 'is-back'"
         :data-shot="shot.id"
+        :data-build="assemblyGroup ? 'frame' : undefined"
+        :data-build-part="`frame-${shot.id}`"
+        :data-build-delay="index === selected ? 340 : 160"
         :aria-label="`${index === selected ? '放大查看' : '切换到'}：${shot.label}`"
         :tabindex="index === selected ? 0 : -1"
         @click="activateImage(index)"
       >
         <img
+          :data-build="assemblyGroup ? 'image' : undefined"
+          :data-build-part="`image-${shot.id}`"
+          :data-build-delay="index === selected ? 500 : 160"
           :src="shot.src"
           :alt="shot.title"
           :width="shot.width"

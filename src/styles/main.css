@@ -254,8 +254,6 @@ h2 { font-size: clamp(2rem, 3.15vw, 2.875rem); line-height: 1.4; font-weight: 70
 }
 
 .wide-section { padding-bottom: 104px; }
-.reveal-pending { opacity: 0; }
-.reveal-pending:focus-within { opacity: 1; }
 .nav-expand-enter-active, .nav-expand-leave-active { transition: opacity 180ms ease, transform 220ms cubic-bezier(.22, 1, .36, 1); }
 .nav-expand-enter-from, .nav-expand-leave-to { opacity: 0; transform: translateY(-8px); }
 @media (max-width: 767px) {
@@ -311,7 +309,7 @@ h2 { font-size: clamp(2rem, 3.15vw, 2.875rem); line-height: 1.4; font-weight: 70
   .menu-button { display: inline-flex; }
   .mobile-nav { display: flex; flex-direction: column; padding-block: 8px 20px; gap: 8px; }
   .mobile-nav a { display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding-inline: 12px; border-bottom: 1px solid var(--rule); font-size: 0.9375rem; }
-  .mobile-nav a span { color: var(--muted); font-family: var(--font-mono); font-size: 0.6875rem; }
+  .mobile-nav a > span:not([data-build]) { color: var(--muted); font-family: var(--font-mono); font-size: 0.6875rem; }
   .hero { grid-template-columns: 1fr; gap: 36px; padding-top: 34px; padding-bottom: 32px; }
   .hero-copy { padding-block: 0; }
   .eyebrow { font-size: 0.6875rem; letter-spacing: .06em; }
@@ -397,12 +395,27 @@ h2 { font-size: clamp(2rem, 3.15vw, 2.875rem); line-height: 1.4; font-weight: 70
   .art-bottomline > span:last-child { display: none; }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .hero-copy { animation: arrive 400ms ease-out both; }
-  .hero-art { animation: arrive 400ms 80ms ease-out both; }
-  @keyframes arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-}
+/* 构建只改变绘制状态，不改变排版或可操作区域；未启用 JS 时就是最终页面。 */
+/* 等待时保留完整交叉区域，避免裁剪为零后观察器漏掉逐步滚入。 */
+[data-assembly-concealed] { opacity: 0; }
+.assembly-frame-pending { border-color: transparent !important; background-color: transparent !important; box-shadow: none !important; }
+.assembly-rule-pending { border-color: transparent !important; }
+.assembly-label-pending { color: transparent !important; border-color: transparent !important; }
+.assembly-working { transition: none !important; }
+.phone-shot.assembly-working { overflow: visible; }
+.assembly-positioned { position: relative; }
+.assembly-outline { position: absolute; z-index: 3; overflow: visible; pointer-events: none; user-select: none; }
+.assembly-selection { position: absolute; display: block; z-index: 5; overflow: visible; pointer-events: none; user-select: none; opacity: 0; }
+.assembly-selection-box { position: absolute; inset: 0; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.assembly-selection-handle { position: absolute; width: 7px; height: 7px; border: 1px solid var(--accent); background: var(--surface); transform: translate(-50%, -50%); }
+.assembly-selection-handle.nw { left: 0; top: 0; }
+.assembly-selection-handle.ne { left: 100%; top: 0; }
+.assembly-selection-handle.se { left: 100%; top: 100%; }
+.assembly-selection-handle.sw { left: 0; top: 100%; }
+.assembly-note-text { display: inline-block; }
 @media (prefers-reduced-motion: reduce) {
+  [data-assembly-concealed] { opacity: 1; }
+  .assembly-outline, .assembly-selection { display: none; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
