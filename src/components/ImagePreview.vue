@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ArrowUpRight, Maximize2, Minimize2, X } from 'lucide-vue-next'
 import { useColorScheme } from '@/composables/useColorScheme'
 import { resolveScreenshot } from '@/utils/screenshots'
@@ -15,8 +15,24 @@ const previewShot = computed(() => resolveScreenshot(displayedShot.value, scheme
 const phase = ref('closed')
 const failed = ref(false)
 const loaded = ref(false)
-const originalSize = ref(false)
 const naturalSize = ref({ width: 0, height: 0 })
+const viewportSize = ref({ width: 0, height: 0 })
+// 1 表示整图适配窗口；大于 1 时按比例放大并允许拖动查看。
+const zoom = ref(1)
+const panning = ref(false)
+const minZoom = 1
+const maxZoom = 8
+const fitSize = computed(() => {
+  const natural = naturalSize.value
+  const view = viewportSize.value
+  if (!natural.width || !natural.height || !view.width || !view.height) return { width: 0, height: 0 }
+  const ratio = Math.min(view.width / natural.width, view.height / natural.height)
+  return { width: natural.width * ratio, height: natural.height * ratio }
+})
+const naturalZoom = computed(() => fitSize.value.width ? naturalSize.value.width / fitSize.value.width : 1)
+const pixelMode = ref(false)
+const zoomed = computed(() => zoom.value > 1.001)
+const zoomPercent = computed(() => Math.round(zoom.value * 100))
 const previewLabel = computed(() => displayedShot.value?.label || displayedShot.value?.title || '图片')
 const closeDuration = 180
 let revision = 0
@@ -25,6 +41,8 @@ let session = null
 let pendingNativeCloses = 0
 let disposed = false
 let backdropPressed = false
+let resizeObserver
+let drag = null
 
 function lockPage(trigger) {
   const body = document.body
@@ -70,7 +88,11 @@ function finishClose(token, notify = true) {
     dialog.value.close()
   }
   displayedShot.value = null
+  drag = null
+  panning.value = false
   restorePage(previous)
+  resizeObserver?.disconnect()
+  resizeObserver = null
   if (previous && notify) emit('close')
 }
 
@@ -113,14 +135,96 @@ function trapFocus(event) {
   }
 }
 
+function syncViewport() {
+  if (!viewport.value) return
+  viewportSize.value = { width: viewport.value.clientWidth, height: viewport.value.clientHeight }
+}
+
+function observeViewport() {
+  if (resizeObserver || !viewport.value || typeof ResizeObserver !== 'function') return
+  resizeObserver = new ResizeObserver(syncViewport)
+  resizeObserver.observe(viewport.value)
+}
+
+function onDialogKeydown(event) {
+  trapFocus(event)
+  onKeydown(event)
+}
+
 function onImageLoad() {
+  syncViewport()
   if (!image.value?.naturalWidth) return
   naturalSize.value = { width: image.value.naturalWidth, height: image.value.naturalHeight }
   loaded.value = true
 }
 
+function clampZoom(value) {
+  return Math.min(maxZoom, Math.max(minZoom, value))
+}
+
+// 以光标为锚点缩放，放大后该点仍停在同一屏幕位置。
+async function applyZoom(next, clientX, clientY) {
+  const value = clampZoom(next)
+  if (Math.abs(value - zoom.value) < .001) return
+  pixelMode.value = false
+  const box = viewport.value.getBoundingClientRect()
+  const imageBox = image.value?.getBoundingClientRect()
+  const anchorX = imageBox ? (clientX - imageBox.left) / imageBox.width : .5
+  const anchorY = imageBox ? (clientY - imageBox.top) / imageBox.height : .5
+  const offsetX = clientX - box.left - viewport.value.clientLeft
+  const offsetY = clientY - box.top - viewport.value.clientTop
+  zoom.value = value
+  await nextTick()
+  if (value <= 1) {
+    viewport.value.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    return
+  }
+  const nextBox = image.value?.getBoundingClientRect()
+  if (!nextBox) return
+  viewport.value.scrollLeft += anchorX * nextBox.width - offsetX
+  viewport.value.scrollTop += anchorY * nextBox.height - offsetY
+}
+
+function onWheel(event) {
+  if (!loaded.value || failed.value) return
+  event.preventDefault()
+  // 触控板双指捏合与普通滚轮走同一路径；deltaMode 需要换算成像素。
+  const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.value.clientHeight : 1
+  const step = Math.exp(-event.deltaY * unit * .0015)
+  applyZoom(zoom.value * step, event.clientX, event.clientY)
+}
+
+function onKeydown(event) {
+  if (event.key === '+' || event.key === '=' || event.key === '-' || event.key === '_') {
+    event.preventDefault()
+    const box = viewport.value.getBoundingClientRect()
+    applyZoom(zoom.value * (event.key === '-' || event.key === '_' ? 1 / 1.25 : 1.25), box.left + box.width / 2, box.top + box.height / 2)
+  }
+}
+
+function startPan(event) {
+  if (!zoomed.value || event.button !== 0 || event.pointerType !== 'mouse') return
+  drag = { x: event.clientX, y: event.clientY, left: viewport.value.scrollLeft, top: viewport.value.scrollTop }
+  panning.value = true
+  viewport.value.setPointerCapture?.(event.pointerId)
+}
+
+function movePan(event) {
+  if (!drag) return
+  viewport.value.scrollLeft = drag.left - (event.clientX - drag.x)
+  viewport.value.scrollTop = drag.top - (event.clientY - drag.y)
+}
+
+function endPan(event) {
+  if (!drag) return
+  drag = null
+  panning.value = false
+  viewport.value.releasePointerCapture?.(event.pointerId)
+}
+
 async function toggleSize() {
-  originalSize.value = !originalSize.value
+  pixelMode.value = !pixelMode.value
+  zoom.value = pixelMode.value ? Math.max(1, naturalZoom.value) : 1
   await nextTick()
   viewport.value?.scrollTo({ top: 0, left: 0, behavior: 'instant' })
 }
@@ -128,7 +232,8 @@ async function toggleSize() {
 watch(() => previewShot.value?.full, () => {
   failed.value = false
   loaded.value = false
-  originalSize.value = false
+  zoom.value = 1
+  pixelMode.value = false
   naturalSize.value = { width: 0, height: 0 }
 })
 
@@ -143,7 +248,8 @@ watch(() => props.shot, async (shot) => {
   displayedShot.value = shot
   failed.value = false
   loaded.value = false
-  originalSize.value = false
+  zoom.value = 1
+  pixelMode.value = false
   naturalSize.value = { width: 0, height: 0 }
   phase.value = 'open'
   backdropPressed = false
@@ -152,13 +258,18 @@ watch(() => props.shot, async (shot) => {
 
   if (!session) session = lockPage(trigger)
   if (!dialog.value.open) dialog.value.showModal()
+  syncViewport()
+  observeViewport()
   viewport.value?.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   // Reusing the same cached image need not dispatch another load event.
   if (image.value?.complete) onImageLoad()
 }, { immediate: true })
 
+onMounted(observeViewport)
+
 onBeforeUnmount(() => {
   disposed = true
+  resizeObserver?.disconnect()
   finishClose(++revision, false)
 })
 </script>
@@ -173,43 +284,45 @@ onBeforeUnmount(() => {
       @pointerdown="backdropPressed = $event.target === $event.currentTarget"
       @pointercancel="backdropPressed = false"
       @click="onBackdropClick"
-      @keydown="trapFocus"
+      @keydown="onDialogKeydown"
       @cancel.prevent="close"
       @close="onNativeClose"
     >
       <div v-if="displayedShot" class="image-preview-panel">
         <header class="image-preview-header">
-          <div class="image-preview-heading">
-            <p class="image-preview-eyebrow">IMAGE VIEW / 图片预览</p>
-            <h2>{{ previewLabel }}</h2>
+          <h2 class="image-preview-title">{{ previewLabel }}</h2>
+          <div class="image-preview-toolbar">
+            <button
+              type="button"
+              class="image-preview-control"
+              :aria-pressed="pixelMode"
+              :disabled="failed || !loaded"
+              @click="toggleSize"
+            >
+              <Minimize2 v-if="pixelMode" :size="16" aria-hidden="true" />
+              <Maximize2 v-else :size="16" aria-hidden="true" />
+              <span>{{ pixelMode ? '适合窗口' : '原始像素' }}</span>
+            </button>
+            <a class="image-preview-control" :href="previewShot.full" target="_blank" rel="noopener noreferrer">
+              <span>查看原图</span><ArrowUpRight :size="16" aria-hidden="true" />
+            </a>
+            <button class="image-preview-close" type="button" aria-label="关闭图片预览" autofocus @click="close">
+              <X :size="20" aria-hidden="true" />
+            </button>
           </div>
-          <button class="image-preview-close" type="button" aria-label="关闭图片预览" autofocus @click="close">
-            <X :size="22" aria-hidden="true" />
-          </button>
         </header>
-        <div class="image-preview-toolbar">
-          <button
-            type="button"
-            class="image-preview-control"
-            :aria-pressed="originalSize"
-            :disabled="failed || !loaded"
-            @click="toggleSize"
-          >
-            <Minimize2 v-if="originalSize" :size="17" aria-hidden="true" />
-            <Maximize2 v-else :size="17" aria-hidden="true" />
-            {{ originalSize ? '适合窗口' : '原始像素（100%）' }}
-          </button>
-          <a class="image-preview-control" :href="previewShot.full" target="_blank" rel="noopener noreferrer">
-            查看原图 <ArrowUpRight :size="17" aria-hidden="true" />
-          </a>
-        </div>
         <div
           ref="viewport"
           class="image-preview-viewport"
-          :class="{ 'is-original': originalSize }"
+          :class="{ 'is-zoomed': zoomed, 'is-original': pixelMode, 'is-panning': panning }"
           tabindex="0"
           role="region"
-          aria-label="截图内容，可使用方向键或触摸滚动查看"
+          aria-label="截图内容，可使用鼠标滚轮或加减键缩放，放大后拖动查看"
+          @wheel="onWheel"
+          @pointerdown="startPan"
+          @pointermove="movePan"
+          @pointerup="endPan"
+          @pointercancel="endPan"
         >
           <p v-if="failed" class="image-preview-error" role="status">图片暂时未能加载，可以点击「查看原图」重试。</p>
           <img
@@ -221,14 +334,15 @@ onBeforeUnmount(() => {
             :alt="displayedShot.title || previewLabel"
             :width="naturalSize.width || displayedShot.width"
             :height="naturalSize.height || displayedShot.height"
-            :style="originalSize ? { width: `${naturalSize.width}px` } : undefined"
+            :style="zoomed ? { width: `${fitSize.width * zoom}px`, height: 'auto' } : undefined"
             decoding="async"
+            draggable="false"
             @load="onImageLoad"
             @error="failed = true"
           />
         </div>
         <p class="image-preview-hint" aria-live="polite">
-          {{ failed ? '也可关闭预览后重新打开。' : !loaded ? '正在加载图片…' : originalSize ? '原始像素 · 可上下、左右滚动查看细节' : '整图预览 · 点击「原始像素」放大并滚动查看细节' }}
+          {{ failed ? '也可关闭预览后重新打开。' : !loaded ? '正在加载图片…' : zoomed ? `${zoomPercent}% · 滚轮或 + − 缩放，拖动查看细节` : '整图预览 · 滚轮放大，查看细节' }}
         </p>
       </div>
     </dialog>
@@ -283,28 +397,27 @@ onBeforeUnmount(() => {
 .image-preview-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 20px 8px;
+  gap: 12px;
+  padding: 8px 10px 4px 16px;
 }
 
-.image-preview-heading {
+.image-preview-title {
+  flex: 1;
   min-width: 0;
-}
-
-.image-preview-eyebrow {
-  margin: 0 0 4px;
-  color: var(--preview-muted);
-  font-size: 11px;
-  letter-spacing: .1em;
-}
-
-.image-preview-heading h2 {
   margin: 0;
-  font-size: 16px;
+  overflow: hidden;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.5;
-  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-preview-toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
 }
 
 .image-preview-close,
@@ -317,13 +430,13 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   min-width: 44px;
   min-height: 44px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid var(--preview-line);
-  border-radius: 7px;
+  border-radius: 6px;
   background: transparent;
   color: var(--preview-text);
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.4;
   text-decoration: none;
   cursor: pointer;
@@ -349,13 +462,6 @@ onBeforeUnmount(() => {
 .image-preview :is(button, a, [tabindex]):focus-visible {
   outline: 2px solid var(--preview-text);
   outline-offset: -4px;
-}
-
-.image-preview-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 20px 16px;
 }
 
 .image-preview-viewport {
@@ -385,17 +491,26 @@ onBeforeUnmount(() => {
   border-radius: 0;
 }
 
-.image-preview-viewport.is-original {
-  display: block;
+.image-preview-viewport.is-zoomed {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
   overflow: auto;
   scrollbar-gutter: stable;
+  cursor: grab;
 }
 
-.is-original .image-preview-image {
+.image-preview-viewport.is-panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.is-zoomed .image-preview-image {
+  flex: none;
   height: auto;
   max-width: none;
   max-height: none;
-  margin: 0 auto;
+  margin: auto;
 }
 
 .image-preview-error {
@@ -407,7 +522,7 @@ onBeforeUnmount(() => {
 
 .image-preview-hint {
   margin: 0;
-  padding: 12px 20px;
+  padding: 6px 16px 10px;
   color: var(--preview-muted);
   font-size: 12px;
   line-height: 1.6;
@@ -466,15 +581,15 @@ onBeforeUnmount(() => {
   }
 
   .image-preview-header {
-    padding: 12px 12px 4px;
+    padding: 4px 6px 2px 12px;
   }
 
-  .image-preview-toolbar {
-    padding: 8px 12px 12px;
+  .image-preview-title {
+    font-size: 13px;
   }
 
   .image-preview-hint {
-    padding: 10px 12px;
+    padding: 8px 12px;
   }
 }
 
@@ -484,19 +599,11 @@ onBeforeUnmount(() => {
   }
 
   .image-preview-header {
-    padding: 6px 12px 0;
-  }
-
-  .image-preview-eyebrow {
-    display: none;
-  }
-
-  .image-preview-toolbar {
-    padding: 4px 12px 8px;
+    padding: 4px 6px 0 12px;
   }
 
   .image-preview-hint {
-    padding: 6px 12px;
+    padding: 4px 12px;
   }
 }
 
