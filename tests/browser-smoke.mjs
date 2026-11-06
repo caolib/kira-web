@@ -6,6 +6,8 @@ import { checkThemes } from './theme-browser.mjs'
 import { checkHeroTags } from './hero-tags.mjs'
 import { loadScreenshots } from './screenshot-helpers.mjs'
 import { checkBackToTop } from './back-to-top.mjs'
+import { site } from '../src/content/site.js'
+import { checkAutoHideHeader } from './header-scroll.mjs'
 
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173'
 const executablePath = [
@@ -32,6 +34,7 @@ async function checkPreviewFit(page, label) {
 }
 
 try {
+  await checkAutoHideHeader(browser, base)
   await checkBackToTop(browser, base)
   await checkHeroTags(browser, base)
   await checkThemes(browser, base)
@@ -52,7 +55,24 @@ try {
     const actions = await page.locator('.nav-actions > a, .nav-actions > button').evaluateAll(elements => elements
       .filter(element => element.getClientRects().length)
       .map(element => { const { x, y, width, height } = element.getBoundingClientRect(); return { x, y, width, height } }))
-    assert.equal(actions.length, width < 768 ? 3 : 2, `${width} 顶部图标数量`)
+    assert.equal(actions.length, width < 768 ? 4 : 3, `${width} 顶部图标数量`)
+    const qq = page.locator('.nav-github + .nav-qq')
+    assert.ok(await qq.isVisible(), `${width} QQ 图标应位于 GitHub 右侧且直接可见`)
+    assert.equal(await qq.innerText(), '')
+    assert.match(await qq.getAttribute('aria-label'), /QQ 交流群/)
+    assert.equal(await qq.getAttribute('href'), site.qqGroupUrl)
+    assert.equal(await qq.getAttribute('target'), '_blank')
+    assert.equal(await qq.getAttribute('rel'), 'noopener noreferrer')
+    await context.route(site.qqGroupUrl, route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>QQ 交流群</title>' }))
+    for (const keyboard of [false, true]) {
+      if (keyboard) await qq.focus()
+      const [popup] = await Promise.all([page.waitForEvent('popup'), keyboard ? page.keyboard.press('Enter') : qq.click()])
+      await popup.waitForLoadState()
+      assert.equal(popup.url(), site.qqGroupUrl, `${width} ${keyboard ? '键盘' : '点击'}应打开交流群链接`)
+      assert.equal(await popup.evaluate(() => window.opener), null)
+      await popup.close()
+    }
+    assert.equal(actions[0].y, (await page.locator('.site-header .brand').boundingBox()).y, `${width} 品牌与顶部图标应保持同一行`)
     for (const [index, action] of actions.entries()) {
       assert.ok(action.width >= 44 && action.height >= 44, `${width} 顶部图标点击区域至少 44px`)
       if (index === 0) continue

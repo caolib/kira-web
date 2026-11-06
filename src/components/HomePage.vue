@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { ArrowDown, ArrowRight, ArrowUpRight, Asterisk, BookOpen, Bookmark, ChartNoAxesColumnIncreasing, Download, Github, MessageSquare, Monitor, Plus, ShieldCheck, Smartphone, Sparkles, WifiOff, ZoomIn } from '@/icons'
+import { ArrowDown, ArrowRight, ArrowUpRight, Asterisk, BookOpen, Bookmark, ChartNoAxesColumnIncreasing, Download, Github, MessageSquare, Monitor, Plus, ShieldCheck, Smartphone, Sparkle, Sparkles, WifiOff, ZoomIn } from '@/icons'
 import { site } from '@/content/site'
 import ImagePreview from './ImagePreview.vue'
 import ScreenshotStudy from './ScreenshotStudy.vue'
@@ -46,7 +46,7 @@ const readingFlowNotes = [
     <section class="hero container" aria-labelledby="hero-title">
       <div class="hero-copy">
         <p class="eyebrow" data-assembly-group="hero-kicker" data-build="lines"><span class="status-dot" /> 漫画 · 轻小说 · 你的阅读角落</p>
-        <h1 id="hero-title" data-assembly-group="hero-title" data-build="type">翻开故事，<br />让平凡的日常<br /><span class="title-underline">闪闪发光。</span></h1>
+        <h1 id="hero-title" data-assembly-group="hero-title" data-build="type">翻开故事，<br />让平凡的日常<br /><span class="title-underline">闪闪发光。<Sparkle v-for="n in 4" :key="n" class="tagline-sparkle" :class="`tagline-sparkle-${n}`" :stroke-width="0" aria-hidden="true" /></span></h1>
         <p class="hero-description" data-assembly-group="hero-description" data-build="lines" data-build-delay="240">把喜欢的漫画装进口袋，<br class="desktop-break" />也给日常留一点沉浸在故事里的时间。</p>
         <div class="hero-actions">
           <a class="button" href="#download">下载 Kira <ArrowDown :size="18" aria-hidden="true" /></a>

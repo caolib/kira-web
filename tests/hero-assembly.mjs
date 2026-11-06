@@ -322,6 +322,13 @@ export async function checkPageAssembly(browser, base) {
       assert.doesNotMatch(control.background, /rgba\([^)]*,\s*0\)$/)
       assert.match(control.label, /主题：自动/)
       assert.equal(control.text, '', '主题按钮只显示图标')
+      await playing(page, 'header-qq')
+      await seek(page, 'header-qq', 450)
+      await checkLayers(page, 'header-qq')
+      const qq = page.locator('.nav-qq')
+      assert.ok(await qq.isVisible(), 'QQ 图标在生成期间保持可见')
+      assert.equal(await qq.evaluate(element => getComputedStyle(element).clipPath), 'none', 'QQ 按钮不能被生成动画裁剪')
+      assert.equal(await qq.evaluate(element => getComputedStyle(element).opacity), '1')
       await page.screenshot({ path: `artifacts/assembly-header-${width}-middle.png` })
       if (width === 375) {
         await playing(page, 'header-menu')
@@ -619,11 +626,8 @@ export async function checkPageAssembly(browser, base) {
         Object.defineProperty(document, 'hidden', { configurable: true, value: true })
         document.dispatchEvent(new Event('visibilitychange'))
       })
-      for (const id of active) {
-        if (interruption === 'fast-scroll' && id.startsWith('header-')) {
-          assert.equal(await page.locator(groupSelector(id)).getAttribute('data-assembly-state'), 'playing', '固定导航没有离屏，正文滚动不应提前结束它')
-        } else await assertComplete(page, id)
-      }
+      for (const id of active) await assertComplete(page, id)
+      if (interruption === 'fast-scroll') assert.ok(await page.locator('.site-header').evaluate(element => element.classList.contains('is-hidden')), '下滚隐藏导航前应完成其生成动画')
       if (interruption === 'reduced-motion') {
         assert.equal(await page.locator('[data-assembly-state]:not([data-assembly-state="complete"])').count(), 0)
         assert.equal(await page.locator('.assembly-selection, [data-assembly-concealed]').count(), 0)
