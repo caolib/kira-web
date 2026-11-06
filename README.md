@@ -76,10 +76,21 @@ python -I scripts/build_fonts.py --chinese /path/to/HYYouYuan-55W.ttf --latin /p
 ```bash
 pnpm test
 # 先启动 pnpm dev 或 pnpm preview，再运行浏览器回归
-pnpm test:browser
+pnpm test:browser:quick       # 1440/375 两个尺寸的核心流程，无专项或真实时钟轮换
+pnpm test:browser header     # 只检查顶部栏
+pnpm test:browser theme tags # 组合指定分组
+pnpm test:browser:full        # 全量覆盖，等同于 pnpm test:browser
+pnpm test:browser:visual      # 全量回归并保存视觉取证截图
+pnpm test:browser tags --screenshots # 只保存标签回归截图
+pnpm test:browser --jobs 2    # 可选：最多两个分组并行
+pnpm test:browser --list      # 列出分组；--help 查看参数
 ```
 
 浏览器测试使用 `playwright-core`，不下载浏览器。自动寻找系统 Chrome / Edge / Chromium，也可通过 `BROWSER_PATH` 指定可执行文件，通过 `TEST_BASE_URL` 指定服务地址。
+
+入口是 `tests/browser-runner.mjs`，分组为 `header`、`back-to-top`、`tags`、`theme`、`assembly`、`smoke`、`motion`。默认仍执行全量测试，但不生成取证截图；通过 `--screenshots` 或 `TEST_SCREENSHOTS=1` 开启，生成动画失败时仍自动保存诊断截图。每组输出开始、结束和耗时，默认串行，`--jobs` 支持 1–4 个分组并行，建议不超过 2，避免逐帧测试争用渲染资源。
+
+快速检查只在桌面/手机验证导航、预览与缩放、下载、指南及历史、分享页和 200% 字号，不替代全断点布局、主题、生成动画及自动轮换验证。全量模式保留所有原有断点、DOM/几何断言、图片解码和真实时钟验证；自动轮换独立为 `motion` 分组。常规页面加载改为等待目标内容、字体和视口内图片就绪，不再额外等待网络静默；分享页等待链接验证完成，避免 App 深链打断文档加载事件。首屏脚本阻塞和慢字体等特殊测试保留各自的加载控制。
 
 覆盖 320/375/768/812/1024/1440/1920 宽度、横屏、200% 字号、预览焦点、整图适配、滚轮缩放与拖动平移、指南深链与历史导航、下载选择、分享页、减少动态效果和空闲动画停止。
 

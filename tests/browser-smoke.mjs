@@ -1,27 +1,8 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync } from 'node:fs'
-import { chromium } from 'playwright-core'
-import { checkPageAssembly } from './hero-assembly.mjs'
-import { checkThemes } from './theme-browser.mjs'
-import { checkHeroTags } from './hero-tags.mjs'
 import { loadScreenshots } from './screenshot-helpers.mjs'
-import { checkBackToTop } from './back-to-top.mjs'
 import { site } from '../src/content/site.js'
-import { checkAutoHideHeader } from './header-scroll.mjs'
-
-const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173'
-const executablePath = [
-  process.env.BROWSER_PATH,
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  '/usr/bin/chromium',
-  '/usr/bin/google-chrome',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-].find(path => path && existsSync(path))
-assert.ok(executablePath, '请用 BROWSER_PATH 指定本地 Chromium/Chrome 可执行文件')
-mkdirSync('artifacts', { recursive: true })
-const browser = await chromium.launch({ executablePath, headless: true })
-const results = []
+import { captureScreenshot, gotoReady, waitForPageReady } from './browser-helpers.mjs'
+import { browserViewports, quickViewports } from './browser-options.mjs'
 
 async function checkOverflow(page, label) {
   const size = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }))
@@ -33,18 +14,14 @@ async function checkPreviewFit(page, label) {
   assert.ok(regions.every(region => region.content <= region.height + 1 && region.contentWidth <= region.width + 1), `${label} 不应需要滚动: ${JSON.stringify(regions)}`)
 }
 
-try {
-  await checkAutoHideHeader(browser, base)
-  await checkBackToTop(browser, base)
-  await checkHeroTags(browser, base)
-  await checkThemes(browser, base)
-  await checkPageAssembly(browser, base)
-  for (const [width, height] of [[1440, 1000], [1920, 1080], [1024, 768], [768, 1024], [375, 812], [320, 740], [812, 375]]) {
+export async function checkBrowserSmoke(browser, base, { quick = false } = {}) {
+  const results = []
+  for (const [width, height] of quick ? quickViewports : browserViewports) {
     const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', isMobile: width < 768, hasTouch: width < 768 })
     const page = await context.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
-    await page.goto(base, { waitUntil: 'networkidle' })
+    await gotoReady(page, base)
     await page.locator('h1').waitFor()
     await checkOverflow(page, `${width} 首页`)
     assert.equal(await page.title(), 'Kira — 让日常闪闪发光')
@@ -80,10 +57,10 @@ try {
       assert.ok(Math.abs(action.x - previous.x - previous.width - 8) < 1, `${width} 顶部图标间距应为 8px`)
       assert.equal(action.y, previous.y, `${width} 顶部图标应对齐`)
     }
-    await page.locator('.site-header').screenshot({ path: `artifacts/nav-spacing-${width}.png` })
-    await loadScreenshots(page)
+    await captureScreenshot(page.locator('.site-header'), { path: `artifacts/nav-spacing-${width}.png` })
+    if (!quick || process.env.TEST_SCREENSHOTS === '1') await loadScreenshots(page)
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
-    await page.screenshot({ path: `artifacts/home-${width}.png`, fullPage: true })
+    await captureScreenshot(page, { path: `artifacts/home-${width}.png`, fullPage: true })
     assert.equal(await page.locator('canvas').count(), 0, '新首页不应加载 3D 画布')
 
     const previewButton = page.getByRole('button', { name: '放大查看：漫画首页', exact: true })
@@ -135,13 +112,13 @@ try {
     await page.locator('.prose-docs h1').waitFor()
     assert.match(await page.title(), /下载与安装/)
     await checkOverflow(page, `${width} 文档`)
-    if (width === 375 || width === 1440) await page.screenshot({ path: `artifacts/docs-${width}.png`, fullPage: true })
+    if (width === 375 || width === 1440) await captureScreenshot(page, { path: `artifacts/docs-${width}.png`, fullPage: true })
 
     if (width < 768) {
       assert.equal(await page.locator('select').count(), 0, '手机指南不应使用原生下拉列表')
       await page.locator('.mobile-doc-directory summary').click()
       await checkOverflow(page, `${width} 展开的指南目录`)
-      if (width === 375) await page.locator('.mobile-doc-directory').screenshot({ path: 'artifacts/docs-directory-375.png' })
+      if (width === 375) await captureScreenshot(page.locator('.mobile-doc-directory'), { path: 'artifacts/docs-directory-375.png' })
       await page.keyboard.press('Escape')
       assert.equal(await page.locator('.mobile-doc-directory[open]').count(), 0)
       await page.keyboard.press('Enter')
@@ -158,16 +135,17 @@ try {
     await page.locator('dialog[open]').waitFor()
     await page.locator('.image-preview-image').evaluate(image => image.decode())
     await checkPreviewFit(page, `${width} 文档预览`)
-    if (width === 812) await page.screenshot({ path: 'artifacts/preview-landscape.png' })
+    if (width === 812) await captureScreenshot(page, { path: 'artifacts/preview-landscape.png' })
     await page.getByRole('button', { name: '原始像素', exact: true }).click()
     assert.equal(await page.locator('.image-preview-viewport.is-original').count(), 1)
     await page.getByRole('button', { name: '适合窗口', exact: true }).click()
     await checkPreviewFit(page, `${width} 适合窗口`)
     await page.keyboard.press('Escape')
     assert.ok(await docImage.evaluate(el => el === document.activeElement), '文档预览应恢复图片按钮焦点')
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await waitForPageReady(page)
     assert.equal(await page.locator('.prose-docs h1').innerText(), '令牌登录')
-    await page.goBack({ waitUntil: 'networkidle' })
+    await page.goBack({ waitUntil: 'domcontentloaded' })
     await page.waitForFunction(() => document.querySelector('.prose-docs h1')?.textContent === '下载与安装')
     assert.deepEqual(errors, [], `${width} 浏览器异常`)
     results.push({ viewport: `${width}×${height}`, home: 'pass', preview: 'pass', download: 'pass', docs: 'pass', history: 'pass', overflow: 'none' })
@@ -176,36 +154,41 @@ try {
 
   const context = await browser.newContext({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' })
   const page = await context.newPage()
-  await page.goto(`${base}/#docs/AI`, { waitUntil: 'networkidle' })
+  await gotoReady(page, `${base}/#docs/AI`)
   await checkOverflow(page, 'AI 指南')
   const images = await page.locator('.prose-docs img').evaluateAll(images => images.map(image => image.src))
   for (const src of images) assert.equal((await context.request.get(src)).status(), 200, src)
-  await page.goto(base, { waitUntil: 'networkidle' })
+  await gotoReady(page, base)
   await page.addStyleTag({ content: 'html { font-size: 200%; }' })
   await checkOverflow(page, '200% 字体')
-  await page.screenshot({ path: 'artifacts/home-text-200.png', fullPage: true })
-  await page.goto(`${base}/c/?w=abc.def`, { waitUntil: 'networkidle' })
+  await captureScreenshot(page, { path: 'artifacts/home-text-200.png', fullPage: true })
+  await gotoReady(page, `${base}/c/?w=abc.def`)
   assert.ok(await page.locator('#open-app').isDisabled())
   assert.match(await page.locator('#status-title').innerText(), /无效/)
   await checkOverflow(page, '无效分享页')
-  await page.screenshot({ path: 'artifacts/share-invalid-375.png', fullPage: true })
-  await page.goto(`${base}/c/?w=test-manga_01`, { waitUntil: 'networkidle' })
+  await captureScreenshot(page, { path: 'artifacts/share-invalid-375.png', fullPage: true })
+  await gotoReady(page, `${base}/c/?w=test-manga_01`)
   assert.ok(await page.locator('#open-app').isEnabled())
   assert.match(await page.locator('#status').innerText(), /尝试|请求/)
   await checkOverflow(page, '有效分享页')
-  await page.screenshot({ path: 'artifacts/share-375.png', fullPage: true })
+  await captureScreenshot(page, { path: 'artifacts/share-375.png', fullPage: true })
   assert.equal((await context.request.get(`${base}/.well-known/assetlinks.json`)).status(), 200)
   await context.close()
 
+  console.table(results)
+  console.log('通过：响应式页面、预览焦点、下载选择、FAQ、文档深链/历史、图片、200% 缩放、分享页及域名验证文件。')
+}
+
+export async function checkScreenshotMotion(browser, base) {
   const motionContext = await browser.newContext({ viewport: { width: 812, height: 375 }, reducedMotion: 'no-preference', colorScheme: 'light' })
   const motionPage = await motionContext.newPage()
-  await motionPage.goto(base, { waitUntil: 'networkidle' })
+  await gotoReady(motionPage, base)
   await motionPage.locator('.study-wide').scrollIntoViewIfNeeded()
   await motionPage.waitForFunction(() => document.getAnimations().filter(animation => animation.animationName !== 'screenshot-tag-float').every(animation => animation.playState !== 'running'))
   await motionPage.getByRole('button', { name: '放大查看：横屏跨页阅读', exact: true }).click()
   await motionPage.locator('.image-preview-image').evaluate(image => image.decode())
   await checkPreviewFit(motionPage, '横屏大图预览')
-  await motionPage.screenshot({ path: 'artifacts/spread-preview-landscape.png' })
+  await captureScreenshot(motionPage, { path: 'artifacts/spread-preview-landscape.png' })
   await motionPage.keyboard.press('Escape')
   await motionPage.locator('dialog[open]').waitFor({ state: 'hidden' })
   assert.equal(await motionPage.getByRole('button', { name: '换一张', exact: true }).count(), 0)
@@ -251,8 +234,5 @@ try {
   await motionPage.locator('.screenshot-study').scrollIntoViewIfNeeded()
   assert.equal(await motionPage.locator('.screenshot-study').getAttribute('data-rotation'), 'paused')
   await motionContext.close()
-  console.table(results)
-  console.log('通过：响应式页面、预览焦点、下载选择、FAQ、文档深链/历史、图片、200% 缩放、分享页及域名验证文件。')
-} finally {
-  await browser.close()
+  console.log('通过：横屏预览、截图手动/自动轮换、主题切换及暂停恢复。')
 }

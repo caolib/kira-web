@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { loadScreenshots } from './screenshot-helpers.mjs'
+import { captureScreenshot, gotoReady, waitForPageReady } from './browser-helpers.mjs'
 
 export async function checkThemes(browser, base) {
   async function scenario(label, check, options = {}) {
@@ -22,7 +23,7 @@ export async function checkThemes(browser, base) {
 
   for (const [width, height] of [[1440, 1000], [375, 812], [320, 740], [812, 375]]) {
     await scenario(`${width} 自动、循环选择、刷新、全站深色与图片`, async (page, context) => {
-      await page.goto(base, { waitUntil: 'networkidle' })
+      await gotoReady(page, base)
       await state(page, 'system', 'dark')
       const button = page.locator('.theme-button')
       assert.equal(await button.innerText(), '')
@@ -45,7 +46,8 @@ export async function checkThemes(browser, base) {
       await state(page, 'dark', 'dark')
       assert.equal(await page.locator('html.theme-transition').count(), 0, '实际配色不变时不应播放动画')
       assert.equal(await page.evaluate(() => localStorage.getItem('kira:theme')), 'dark')
-      await page.reload({ waitUntil: 'networkidle' })
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await waitForPageReady(page)
       await page.emulateMedia({ colorScheme: 'light' })
       await state(page, 'dark', 'dark')
       await button.click()
@@ -69,14 +71,14 @@ export async function checkThemes(browser, base) {
         assert.equal(image.src, `/screenshots/reading-edition/${image.id}${shared ? '' : '-dark'}.webp`)
         assert.equal(image.filter, shared ? 'brightness(0.85)' : 'none', `${image.id} 原生深色图不应额外压暗`)
       }
-      await page.screenshot({ path: `artifacts/theme-home-dark-${width}.png`, fullPage: true })
+      await captureScreenshot(page, { path: `artifacts/theme-home-dark-${width}.png`, fullPage: true })
       await page.getByRole('button', { name: '放大查看：漫画首页', exact: true }).click()
       await page.locator('.image-preview-image').evaluate(el => el.decode())
       assert.equal(await page.locator('.image-preview').evaluate(el => getComputedStyle(el).colorScheme), 'dark')
       assert.equal(await page.locator('.image-preview-image').evaluate(el => getComputedStyle(el).filter), 'none')
       assert.match(await page.locator('.image-preview-image').getAttribute('src'), /discover-dark-full\.webp$/)
       assert.ok(await page.locator('.image-preview-viewport').evaluate(el => el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1))
-      await page.screenshot({ path: `artifacts/theme-preview-dark-${width}.png` })
+      await captureScreenshot(page, { path: `artifacts/theme-preview-dark-${width}.png` })
       const dimensions = () => page.locator('[data-screenshot-id]').evaluateAll(images => images.map(image => [image.dataset.screenshotId, image.clientWidth, image.clientHeight]))
       const darkDimensions = await dimensions()
       for (const theme of ['light', 'dark']) {
@@ -90,27 +92,27 @@ export async function checkThemes(browser, base) {
         assert.ok(await page.locator('.image-preview-viewport').evaluate(element => element.scrollHeight <= element.clientHeight + 1 && element.scrollWidth <= element.clientWidth + 1))
       }
       await page.keyboard.press('Escape')
-      await page.goto(`${base}/#docs/login`, { waitUntil: 'networkidle' })
+      await gotoReady(page, `${base}/#docs/login`)
       await page.locator('.prose-docs h1').waitFor()
       await state(page, 'system', 'dark')
       await overflow(page)
       assert.equal(await page.locator('.prose-docs img').first().evaluate(el => getComputedStyle(el).filter), 'brightness(0.85)')
-      if (width === 375 || width === 1440) await page.screenshot({ path: `artifacts/theme-docs-dark-${width}.png`, fullPage: true })
+      if (width === 375 || width === 1440) await captureScreenshot(page, { path: `artifacts/theme-docs-dark-${width}.png`, fullPage: true })
       if (width === 375) {
         await page.addStyleTag({ content: 'html { font-size: 200%; }' })
         await overflow(page)
-        await page.screenshot({ path: 'artifacts/theme-docs-dark-text-200.png', fullPage: true })
+        await captureScreenshot(page, { path: 'artifacts/theme-docs-dark-text-200.png', fullPage: true })
       }
       await button.click()
       await state(page, 'dark', 'dark')
-      await page.goto(`${base}/c/?w=invalid.value`, { waitUntil: 'networkidle' })
+      await gotoReady(page, `${base}/c/?w=invalid.value`)
       await state(page, 'dark', 'dark')
       assert.equal(await page.locator('.theme-button').count(), 0)
       assert.ok(await page.locator('#open-app').isDisabled())
       await overflow(page)
-      if (width === 375 || width === 1440) await page.screenshot({ path: `artifacts/theme-share-dark-${width}.png`, fullPage: true })
+      if (width === 375 || width === 1440) await captureScreenshot(page, { path: `artifacts/theme-share-dark-${width}.png`, fullPage: true })
       const other = await context.newPage()
-      await other.goto(base, { waitUntil: 'networkidle' })
+      await gotoReady(other, base)
       await other.locator('.theme-button').click()
       await state(other, 'light', 'light')
       await state(page, 'light', 'light')
@@ -152,7 +154,7 @@ export async function checkThemes(browser, base) {
           return animation
         }
       })
-      await page.goto(base, { waitUntil: 'networkidle' })
+      await gotoReady(page, base)
       const button = page.locator('.theme-button')
       for (const [index, mode] of ['dark', 'light'].entries()) {
         const rect = await button.boundingBox()
@@ -176,7 +178,7 @@ export async function checkThemes(browser, base) {
         await button.evaluate(el => { el.click(); el.click() })
         assert.equal(await page.locator('html').getAttribute('data-theme-mode'), mode)
         assert.equal(await page.evaluate(() => window.__themeAnimations.length), index + 1)
-        await page.screenshot({ path: `artifacts/theme-transition-${mode}-${width}.png` })
+        await captureScreenshot(page, { path: `artifacts/theme-transition-${mode}-${width}.png` })
         await page.evaluate(() => window.__themeAnimations.at(-1).animation.finish())
         await settled(page)
         assert.equal(await page.evaluate(() => localStorage.getItem('kira:theme')), mode)
@@ -218,7 +220,7 @@ export async function checkThemes(browser, base) {
           Storage.prototype.getItem = Storage.prototype.setItem = () => { throw new Error('blocked') }
         }
       }, failure)
-      await page.goto(base, { waitUntil: 'networkidle' })
+      await gotoReady(page, base)
       const button = page.locator('.theme-button')
       await button.click()
       await state(page, 'dark', 'dark')
@@ -231,7 +233,7 @@ export async function checkThemes(browser, base) {
   }
 
   await scenario('自然时钟动画结束后不残留快照或填充动画', async page => {
-    await page.goto(base, { waitUntil: 'networkidle' })
+    await gotoReady(page, base)
     await page.locator('.theme-button').click()
     await state(page, 'dark', 'dark')
     await settled(page)

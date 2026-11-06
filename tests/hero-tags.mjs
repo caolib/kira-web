@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { loadScreenshots, screenshotRegions as regions } from './screenshot-helpers.mjs'
+import { captureScreenshot, gotoReady, waitForPageReady } from './browser-helpers.mjs'
 
 const frame = page => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
 const tagSelector = id => `.screenshot-tag-slot[data-shot-tag="${id}"]`
@@ -100,21 +101,25 @@ export async function checkHeroTags(browser, base) {
       const page = await context.newPage()
       const errors = []
       page.on('pageerror', error => errors.push(error.message))
-      await page.goto(base, { waitUntil: 'networkidle' })
+      await gotoReady(page, base)
       await loadScreenshots(page)
       for (const theme of ['light', 'dark']) {
-        if (theme === 'dark') await page.locator('.theme-button').click()
+        if (theme === 'dark') {
+          await page.locator('.theme-button').click()
+          await waitForPageReady(page)
+        }
         await checkLayout(page)
         assert.equal(await page.locator('.screenshot-tag-slot[data-floating="playing"]').count(), 0)
         assert.equal(await page.locator('.screenshot-tag').evaluateAll(elements => elements.flatMap(element => element.getAnimations()).length), 0)
         for (const [name, selector] of regions) {
-          await page.locator(selector).screenshot({ path: `artifacts/screenshot-tags-${name}-${theme}-${width}.png` })
+          await captureScreenshot(page.locator(selector), { path: `artifacts/screenshot-tags-${name}-${theme}-${width}.png` })
         }
       }
       if (width === 320 || width === 375 || width === 768) {
         await page.addStyleTag({ content: 'html { font-size: 200%; }' })
+        await waitForPageReady(page)
         await checkLayout(page)
-        await page.locator('.hero-art').screenshot({ path: `artifacts/screenshot-tags-text-200-${width}.png` })
+        await captureScreenshot(page.locator('.hero-art'), { path: `artifacts/screenshot-tags-text-200-${width}.png` })
       }
       assert.deepEqual(errors, [])
     } finally { await context.close() }
@@ -136,7 +141,7 @@ export async function checkHeroTags(browser, base) {
           return animation
         }
       })
-      await page.goto(base, { waitUntil: 'networkidle' })
+      await gotoReady(page, base)
       await page.locator(tagSelector('discover')).scrollIntoViewIfNeeded()
       await page.locator('[data-assembly-group="hero-discover-caption"][data-assembly-state="playing"]').waitFor()
       assert.equal(await page.locator(tagSelector('discover')).getAttribute('data-floating'), 'paused', '生成完成前不飘动')
@@ -151,7 +156,7 @@ export async function checkHeroTags(browser, base) {
         assert.ok(pair.frame, '每个 tag 都有自己的动画选框')
         for (const key of ['x', 'y', 'width', 'height']) assert.ok(Math.abs(pair.tag[key] - pair.frame[key]) < 1, `${width} tag 选框 ${key} 应与实际标签对齐`)
       }
-      await page.screenshot({ path: `artifacts/tag-frame-alignment-${width}.png` })
+      await captureScreenshot(page, { path: `artifacts/tag-frame-alignment-${width}.png` })
       await page.evaluate(() => {
         window.__holdTagAssembly = false
         document.getAnimations().filter(animation => animation.id.startsWith('assembly:')).forEach(animation => animation.finish())
@@ -254,7 +259,7 @@ export async function checkHeroTags(browser, base) {
   try {
     const page = await context.newPage()
     await page.addInitScript(() => { delete window.IntersectionObserver })
-    await page.goto(base, { waitUntil: 'networkidle' })
+    await gotoReady(page, base)
     await assertPaused(page)
     await loadScreenshots(page)
     await checkLayout(page)

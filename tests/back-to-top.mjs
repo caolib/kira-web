@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { captureScreenshot, gotoReady } from './browser-helpers.mjs'
 
 export async function checkBackToTop(browser, base) {
   for (const width of [1440, 375]) {
@@ -13,7 +14,7 @@ export async function checkBackToTop(browser, base) {
           window.__scrollCalls = []
           window.scrollTo = (...args) => { window.__scrollCalls.push(args[0]); return scrollTo(...args) }
         })
-        await page.goto(base, { waitUntil: 'networkidle' })
+        await gotoReady(page, base)
         const button = page.getByRole('button', { name: '回到顶部', exact: true })
         assert.equal(await button.count(), 0, '顶部不显示回顶按钮')
         await page.evaluate(() => window.scrollTo({ top: 400, behavior: 'instant' }))
@@ -25,7 +26,7 @@ export async function checkBackToTop(browser, base) {
         const box = await button.boundingBox()
         assert.ok(box.width >= 44 && box.height >= 44, '回顶按钮保留 44px 点击区域')
         assert.ok(box.x >= 0 && box.x + box.width <= width - 15 && box.y + box.height <= 812 - 15)
-        if (reducedMotion === 'reduce') await page.screenshot({ path: `artifacts/back-to-top-${width}.png` })
+        if (reducedMotion === 'reduce') await captureScreenshot(page, { path: `artifacts/back-to-top-${width}.png` })
         const url = page.url()
         await page.evaluate(() => { window.__scrollCalls = [] })
         await button.click()
@@ -34,7 +35,7 @@ export async function checkBackToTop(browser, base) {
         assert.equal(page.url(), url, '回顶不改变路由或历史')
         assert.equal(await page.evaluate(() => window.__scrollCalls[0]?.behavior), reducedMotion === 'reduce' ? 'instant' : 'smooth')
         assert.ok(await page.locator('.site-header .brand').evaluate(element => element === document.activeElement), '回顶后焦点回到导航')
-        await page.goto(`${base}/#docs/login`, { waitUntil: 'networkidle' })
+        await gotoReady(page, `${base}/#docs/login`)
         await page.locator('.prose-docs h1').waitFor()
         await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }))
         await button.waitFor()

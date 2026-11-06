@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { captureScreenshot, gotoReady } from './browser-helpers.mjs'
 
 const groupSelector = id => `[data-assembly-group="${id}"]`
 const frame = page => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
@@ -269,7 +270,7 @@ export async function checkPageAssembly(browser, base) {
       assert.deepEqual(errors, [], `${label} 浏览器异常`)
       console.log(`通过：分组生成 / ${label}`)
     } catch (error) {
-      await page.screenshot({ path: `artifacts/assembly-failure-${number}.png` }).catch(() => {})
+      await captureScreenshot(page, { path: `artifacts/assembly-failure-${number}.png` }, { force: true }).catch(() => {})
       console.error(`失败：分组生成 / ${label}`)
       console.error(JSON.stringify(await page.locator('[data-assembly-group]').evaluateAll(groups => groups.map(group => ({ id: group.dataset.assemblyGroup, state: group.dataset.assemblyState, reason: group.dataset.assemblyReason, duration: group.dataset.assemblyDuration }))), null, 2))
       throw error
@@ -329,7 +330,7 @@ export async function checkPageAssembly(browser, base) {
       assert.ok(await qq.isVisible(), 'QQ 图标在生成期间保持可见')
       assert.equal(await qq.evaluate(element => getComputedStyle(element).clipPath), 'none', 'QQ 按钮不能被生成动画裁剪')
       assert.equal(await qq.evaluate(element => getComputedStyle(element).opacity), '1')
-      await page.screenshot({ path: `artifacts/assembly-header-${width}-middle.png` })
+      await captureScreenshot(page, { path: `artifacts/assembly-header-${width}-middle.png` })
       if (width === 375) {
         await playing(page, 'header-menu')
         const menu = page.getByRole('button', { name: '打开导航', exact: true })
@@ -343,7 +344,7 @@ export async function checkPageAssembly(browser, base) {
           await checkTextProgress(page, id, `${groupSelector(id)} [data-build="lines"]`)
           await checkLayers(page, id)
         }
-        await page.screenshot({ path: 'artifacts/assembly-mobile-menu-middle.png' })
+        await captureScreenshot(page, { path: 'artifacts/assembly-mobile-menu-middle.png' })
         for (const id of ids) await complete(page, id)
         const before = await page.evaluate(() => window.__assemblyTest.animations.filter(animation => animation.id.startsWith('assembly:header-mobile-')).length)
         await page.keyboard.press('Escape')
@@ -377,9 +378,9 @@ export async function checkPageAssembly(browser, base) {
       await playing(page, 'footer-disclaimer')
       await checkTextProgress(page, 'footer-disclaimer', groupSelector('footer-disclaimer'), { multiline: width === 375 })
       await seek(page, null, 550)
-      await page.screenshot({ path: `artifacts/assembly-footer-${width}-middle.png` })
+      await captureScreenshot(page, { path: `artifacts/assembly-footer-${width}-middle.png` })
       await completeActive(page)
-      await page.screenshot({ path: `artifacts/assembly-footer-${width}-complete.png` })
+      await captureScreenshot(page, { path: `artifacts/assembly-footer-${width}-complete.png` })
       const before = await page.evaluate(() => window.__assemblyTest.animations.filter(animation => animation.id.startsWith('assembly:footer-')).length)
       await page.locator(groupSelector('footer-docs')).click()
       await page.locator('.prose-docs').waitFor()
@@ -405,17 +406,17 @@ export async function checkPageAssembly(browser, base) {
       assert.equal(await page.locator(groupSelector('faq-01')).getAttribute('data-assembly-state'), 'waiting')
       await checkTextProgress(page, 'hero-title', '#hero-title', { multiline: true })
       await seek(page, null, 680)
-      await page.screenshot({ path: `artifacts/assembly-${width}-middle.png` })
+      await captureScreenshot(page, { path: `artifacts/assembly-${width}-middle.png` })
       await completeActive(page)
       sameLayout(await snapshot(page, selector), original, `${width} 完成态`)
       assert.equal(await page.locator('.home-page').textContent(), initialText, '全部临时层不应增删页面文案')
-      await page.screenshot({ path: `artifacts/assembly-${width}-complete.png` })
+      await captureScreenshot(page, { path: `artifacts/assembly-${width}-complete.png` })
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), '生成动画不能引入横向溢出')
 
       const staticContext = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', isMobile: width < 768, hasTouch: width < 768 })
       try {
         const staticPage = await staticContext.newPage()
-        await staticPage.goto(base, { waitUntil: 'networkidle' })
+        await gotoReady(staticPage, base)
         sameLayout(await snapshot(page, selector), await snapshot(staticPage, selector), `${width} 与无动画布局一致`)
       } finally { await staticContext.close() }
       await page.reload({ waitUntil: 'domcontentloaded' })
@@ -449,10 +450,10 @@ export async function checkPageAssembly(browser, base) {
             assert.equal(await page.locator('.screenshot-study').getAttribute('data-rotation'), 'paused', '宽屏截图生成时不能自动轮换')
             assert.equal(await page.locator('.stack-shot').count(), 2)
           }
-          await page.screenshot({ path: `artifacts/assembly-${width}-${id}-middle.png` })
+          await captureScreenshot(page, { path: `artifacts/assembly-${width}-${id}-middle.png` })
           await complete(page, id)
           sameLayout(await snapshot(page, `${groupSelector(id)}, ${groupSelector(id)} [data-build]`), original, `${width} ${id}`)
-          await page.screenshot({ path: `artifacts/assembly-${width}-${id}-complete.png` })
+          await captureScreenshot(page, { path: `artifacts/assembly-${width}-${id}-complete.png` })
         }
         if (section === 'download') {
           await page.locator('input[value="windows"]').focus()
@@ -507,7 +508,7 @@ export async function checkPageAssembly(browser, base) {
           reached = true
           await playing(page, id)
           await checkTextProgress(page, id, groupSelector(id), { multiline: true })
-          await page.screenshot({ path: `artifacts/assembly-${width}-${id}-downscroll-middle.png` })
+          await captureScreenshot(page, { path: `artifacts/assembly-${width}-${id}-downscroll-middle.png` })
           await complete(page, id)
           const final = await page.locator(groupSelector(id)).evaluate(element => ({ clip: getComputedStyle(element).clipPath, opacity: getComputedStyle(element).opacity }))
           assert.deepEqual(final, { clip: 'none', opacity: '1' }, '完成后小说文字必须完全显示')
@@ -660,7 +661,7 @@ export async function checkPageAssembly(browser, base) {
       await scrollToGroup(page, 'hero-title')
       await playing(page, 'hero-title')
       await checkTextProgress(page, 'hero-title', '#hero-title', { multiline: true })
-      await page.screenshot({ path: `artifacts/assembly-${layout}-middle.png` })
+      await captureScreenshot(page, { path: `artifacts/assembly-${layout}-middle.png` })
       await completeActive(page)
       await scrollToGroup(page, 'novel-library')
       await playing(page, 'novel-library')

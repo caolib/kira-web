@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { captureScreenshot, gotoReady } from './browser-helpers.mjs'
 
 export async function checkAutoHideHeader(browser, base) {
   for (const width of [1440, 375, 320]) {
@@ -18,7 +19,7 @@ export async function checkAutoHideHeader(browser, base) {
       }
       try {
         await page.mouse.move(width / 2, 700)
-        await page.goto(`${base}${path}`, { waitUntil: 'networkidle' })
+        await gotoReady(page, `${base}${path}`)
         await state(false)
         const height = await page.locator('.site-header').evaluate(element => element.offsetHeight)
         await scroll(50)
@@ -80,12 +81,12 @@ export async function checkAutoHideHeader(browser, base) {
         await state(false)
         assert.ok(await page.locator('.site-header .brand').evaluate(element => element === document.activeElement))
         const label = path === '/' ? 'home' : 'docs'
-        await page.screenshot({ path: `artifacts/header-scroll-${width}-${label}-shown.png`, clip: { x: 0, y: 0, width, height: 180 } })
+        await captureScreenshot(page, { path: `artifacts/header-scroll-${width}-${label}-shown.png`, clip: { x: 0, y: 0, width, height: 180 } })
         await page.evaluate(() => document.activeElement.blur())
         await page.mouse.move(width / 2, 700)
         await scroll(600)
         await state(true)
-        await page.screenshot({ path: `artifacts/header-scroll-${width}-${label}-hidden.png`, clip: { x: 0, y: 0, width, height: 180 } })
+        await captureScreenshot(page, { path: `artifacts/header-scroll-${width}-${label}-hidden.png`, clip: { x: 0, y: 0, width, height: 180 } })
         assert.deepEqual(errors, [])
         console.log(`通过：${width}px ${label} 下滚隐藏、上滚恢复、键盘/菜单/预览与回顶`)
       } finally { await context.close() }
@@ -96,7 +97,7 @@ export async function checkAutoHideHeader(browser, base) {
   const page = await context.newPage()
   try {
     await page.mouse.move(700, 700)
-    await page.goto(base, { waitUntil: 'networkidle' })
+    await gotoReady(page, base)
     await page.waitForFunction(() => document.querySelector('#hero-title')?.dataset.assemblyState === 'complete')
     assert.equal(await page.locator('.header-surface').evaluate(element => getComputedStyle(element).transitionDuration), '0.18s')
     await page.evaluate(() => window.scrollTo({ top: 600, behavior: 'instant' }))
