@@ -12,7 +12,7 @@ useAssemblyMotion(footerRoot)
   <footer ref="footerRoot" class="site-footer">
     <div class="container">
       <div class="footer-top">
-        <a href="#" class="brand" data-assembly-group="footer-brand" data-build="highlight"><img data-build="image" :src="site.logo" alt="" width="36" height="36" /><span data-build="lines">kira<span class="brand-dot">.</span></span></a>
+        <a href="#" class="brand" data-assembly-group="footer-brand" data-build="highlight"><img data-build="image" :src="site.logo" alt="" width="36" height="36" /><span data-build="lines">Kira<span class="brand-dot">.</span></span></a>
         <p data-assembly-group="footer-note" data-build="lines">故事还长，下次接着看。</p>
         <nav aria-label="页脚导航">
           <a href="#docs/getting-started" data-assembly-group="footer-docs" data-build="highlight"><span data-build="lines">使用指南</span></a>

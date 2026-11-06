@@ -9,6 +9,7 @@ const positions = new WeakMap()
 // 每个区域共用一个观察器，页头、正文、页脚共享定位租约。
 export function useAssemblyMotion(root, { belowHeader = true } = {}) {
   const wideBuilding = ref(true)
+  const completedGroups = ref(new Set())
   const groups = new Map()
   let observer
   let events
@@ -43,6 +44,7 @@ export function useAssemblyMotion(root, { belowHeader = true } = {}) {
     group.state = state
     group.element.dataset.assemblyState = state
     if (reason) group.element.dataset.assemblyReason = reason
+    if (state === 'complete') completedGroups.value.add(group.id)
     if (group.id === 'wide-stack' && state === 'complete') wideBuilding.value = false
   }
 
@@ -188,6 +190,7 @@ export function useAssemblyMotion(root, { belowHeader = true } = {}) {
       width: `${parseFloat(style.width) || element.offsetWidth}px`,
       height: `${parseFloat(style.height) || element.offsetHeight}px`,
       transform: style.transform, transformOrigin: style.transformOrigin,
+      translate: style.translate, rotate: style.rotate, scale: style.scale,
     })
     const border = document.createElement('span')
     border.className = 'assembly-selection-box'
@@ -351,6 +354,7 @@ export function useAssemblyMotion(root, { belowHeader = true } = {}) {
     events?.abort()
     groups.forEach(group => finish(group, 'refresh'))
     groups.clear()
+    completedGroups.value.clear()
     wideBuilding.value = true
     const element = root.value
     if (!element) return
@@ -419,5 +423,5 @@ export function useAssemblyMotion(root, { belowHeader = true } = {}) {
     groups.forEach(group => finish(group, 'unmount'))
   })
 
-  return { wideBuilding, finishGroup, refresh: initialize }
+  return { wideBuilding, completedGroups, finishGroup, refresh: initialize }
 }

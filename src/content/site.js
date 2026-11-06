@@ -1,12 +1,14 @@
-const screenshot = (id, label, title, width, height) => ({
-  id,
-  label,
-  title,
-  src: `/screenshots/reading-edition/${id}.webp`,
-  full: `/screenshots/reading-edition/${id}-full.webp`,
-  width,
-  height,
-})
+const screenshot = (id, label, title, width, height, tags, hasDark = true) => {
+  const base = `/screenshots/reading-edition/${id}`
+  const light = { src: `${base}.webp`, full: `${base}-full.webp` }
+  return {
+    id, label, title, width, height, tags,
+    ...light,
+    light,
+    dark: hasDark ? { src: `${base}-dark.webp`, full: `${base}-dark-full.webp` } : null,
+    dimInDark: !hasDark,
+  }
+}
 
 export const site = {
   name: 'Kira',
@@ -17,14 +19,16 @@ export const site = {
   qqGroupNumber: '1025321453',
   logo: '/logo.png',
   screenshots: [
-    screenshot('discover', '漫画发现', '漫画首页的推荐与排行榜', 657, 1285),
-    screenshot('reader', '漫画阅读', '全屏漫画阅读界面', 657, 1275),
-    screenshot('novels', '轻小说书库', '轻小说分类、筛选与作品封面', 657, 1272),
-    screenshot('novel-reader', '轻小说阅读', '浅色背景的轻小说正文阅读', 657, 1275),
-    screenshot('detail', '漫画详情', '漫画简介、收藏入口与章节列表', 657, 1278),
-    screenshot('bookshelf', '我的书架', '收藏的漫画与更新提醒', 657, 1273),
-    screenshot('desktop', '横屏首页', '宽屏布局的漫画首页与侧边导航', 1950, 1262),
-    screenshot('spread', '横屏跨页阅读', '横屏完整呈现漫画跨页大图', 1950, 1262),
+    screenshot('discover', '漫画首页', '漫画首页的推荐与排行榜', 656, 1317, ['双源切换', '发现下一部喜欢']),
+    screenshot('reader', '漫画阅读', '全屏漫画阅读界面', 656, 1317, ['全屏沉浸', '状态显示'], false),
+    screenshot('novels', '轻小说书库', '轻小说分类、筛选与作品封面', 656, 1317, ['按喜好发现新作']),
+    screenshot('novel-reader', '轻小说阅读', '轻小说正文阅读界面', 656, 1317, ['字号排版自己定', '沉浸字里行间']),
+    screenshot('detail', '漫画详情', '漫画简介、收藏入口与章节列表', 656, 1317, ['本地下载', '精确进度']),
+    screenshot('bookshelf', '我的书架', '收藏的漫画与更新提醒', 656, 1317, ['留一格给喜欢', '更新不错过']),
+    screenshot('desktop', '横屏首页', '宽屏布局的漫画首页与侧边导航', 1967, 1233, ['大屏浏览更从容']),
+    screenshot('spread', '横屏跨页阅读', '横屏完整呈现漫画跨页大图', 1967, 1233, ['大场面一眼看全'], false),
+    screenshot('bookmarks', '阅读书签', '按作品和章节整理的漫画与轻小说书签', 656, 1317, ['一键续读', '喜欢的片段随时重温']),
+    screenshot('comments', '章节评论', '阅读器内的章节评论与下一话入口', 656, 1317, ['疑似剧透先遮挡', '热门讨论一眼看到']),
   ],
   faqs: [
     { question: 'Kira 是什么？', answer: 'Kira 是漫画与轻小说阅读客户端，支持访问拷贝漫画、热辣漫画等第三方内容。它不是内容平台，内容与服务可用性取决于对应来源。' },

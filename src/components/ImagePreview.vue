@@ -1,6 +1,8 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { ArrowUpRight, Maximize2, Minimize2, X } from 'lucide-vue-next'
+import { useColorScheme } from '@/composables/useColorScheme'
+import { resolveScreenshot } from '@/utils/screenshots'
 
 const props = defineProps({ shot: Object })
 const emit = defineEmits(['close'])
@@ -8,6 +10,8 @@ const dialog = ref(null)
 const image = ref(null)
 const viewport = ref(null)
 const displayedShot = ref(null)
+const scheme = useColorScheme()
+const previewShot = computed(() => resolveScreenshot(displayedShot.value, scheme.value))
 const phase = ref('closed')
 const failed = ref(false)
 const loaded = ref(false)
@@ -121,6 +125,13 @@ async function toggleSize() {
   viewport.value?.scrollTo({ top: 0, left: 0, behavior: 'instant' })
 }
 
+watch(() => previewShot.value?.full, () => {
+  failed.value = false
+  loaded.value = false
+  originalSize.value = false
+  naturalSize.value = { width: 0, height: 0 }
+})
+
 watch(() => props.shot, async (shot) => {
   if (!shot) {
     close()
@@ -188,7 +199,7 @@ onBeforeUnmount(() => {
             <Maximize2 v-else :size="17" aria-hidden="true" />
             {{ originalSize ? '适合窗口' : '原始像素（100%）' }}
           </button>
-          <a class="image-preview-control" :href="displayedShot.full" target="_blank" rel="noopener noreferrer">
+          <a class="image-preview-control" :href="previewShot.full" target="_blank" rel="noopener noreferrer">
             查看原图 <ArrowUpRight :size="17" aria-hidden="true" />
           </a>
         </div>
@@ -203,10 +214,10 @@ onBeforeUnmount(() => {
           <p v-if="failed" class="image-preview-error" role="status">图片暂时未能加载，可以点击「查看原图」重试。</p>
           <img
             v-else
-            :key="displayedShot.full"
+            :key="previewShot.full"
             ref="image"
             class="image-preview-image"
-            :src="displayedShot.full"
+            :src="previewShot.full"
             :alt="displayedShot.title || previewLabel"
             :width="naturalSize.width || displayedShot.width"
             :height="naturalSize.height || displayedShot.height"
@@ -244,7 +255,7 @@ onBeforeUnmount(() => {
   background: transparent;
   color: var(--preview-text);
   overflow: hidden;
-  color-scheme: light;
+  color-scheme: inherit;
 }
 
 .image-preview[open] {
@@ -332,7 +343,7 @@ onBeforeUnmount(() => {
 .image-preview-control[aria-pressed='true'],
 .image-preview-control:not(:disabled):active,
 .image-preview-close:active {
-  background: rgb(255 255 255 / 12%);
+  background: var(--sage-strong);
 }
 
 .image-preview :is(button, a, [tabindex]):focus-visible {
@@ -441,7 +452,7 @@ onBeforeUnmount(() => {
 @media (hover: hover) {
   .image-preview-control:not(:disabled):hover,
   .image-preview-close:hover {
-    background: rgb(255 255 255 / 8%);
+    background: var(--sage);
   }
 }
 

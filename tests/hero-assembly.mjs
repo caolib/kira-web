@@ -312,15 +312,16 @@ export async function checkPageAssembly(browser, base) {
       await open(page)
       await playing(page, 'header-brand')
       await checkTextProgress(page, 'header-brand', `${groupSelector('header-brand')} [data-build="lines"]`)
-      await playing(page, 'header-download')
-      await seek(page, 'header-download', 450)
-      await checkLayers(page, 'header-download')
-      const download = page.locator(groupSelector('header-download'))
-      const control = await download.evaluate(element => ({ clip: getComputedStyle(element).clipPath, opacity: getComputedStyle(element).opacity, background: getComputedStyle(element).backgroundColor, text: element.textContent }))
-      assert.equal(control.clip, 'none', '导航下载按钮不能被生成动画裁剪')
+      await playing(page, 'header-theme')
+      await seek(page, 'header-theme', 450)
+      await checkLayers(page, 'header-theme')
+      const themeButton = page.locator(groupSelector('header-theme'))
+      const control = await themeButton.evaluate(element => ({ clip: getComputedStyle(element).clipPath, opacity: getComputedStyle(element).opacity, background: getComputedStyle(element).backgroundColor, label: element.getAttribute('aria-label'), text: element.textContent.trim() }))
+      assert.equal(control.clip, 'none', '主题按钮不能被生成动画裁剪')
       assert.equal(control.opacity, '1')
       assert.doesNotMatch(control.background, /rgba\([^)]*,\s*0\)$/)
-      assert.match(control.text, /下载 Kira/)
+      assert.match(control.label, /主题：自动/)
+      assert.equal(control.text, '', '主题按钮只显示图标')
       await page.screenshot({ path: `artifacts/assembly-header-${width}-middle.png` })
       if (width === 375) {
         await playing(page, 'header-menu')
@@ -329,7 +330,7 @@ export async function checkPageAssembly(browser, base) {
         await page.keyboard.press('Enter')
         await page.locator('#mobile-nav').waitFor()
         await assertComplete(page, 'hero-title')
-        const ids = ['header-mobile-experience', 'header-mobile-docs', 'header-mobile-github']
+        const ids = ['header-mobile-experience', 'header-mobile-docs']
         for (const id of ids) {
           await playing(page, id)
           await checkTextProgress(page, id, `${groupSelector(id)} [data-build="lines"]`)
@@ -382,7 +383,7 @@ export async function checkPageAssembly(browser, base) {
       assert.equal(await page.evaluate(() => window.__assemblyTest.animations.filter(animation => animation.id.startsWith('assembly:footer-')).length), before, '指南往返后已播页脚不能重播')
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
       // 下载锚点的平滑滚动放在最后，不与页脚逐帧测量争用滚动位置。
-      await download.click()
+      await page.locator('.hero-actions a[href="#download"]').click()
       await page.waitForFunction(() => location.hash === '#download')
     }, { viewport: { width, height: width === 375 ? 812 : 1000 }, isMobile: width === 375, hasTouch: width === 375 })
   }
@@ -420,20 +421,23 @@ export async function checkPageAssembly(browser, base) {
   }
 
   for (const width of [1440, 375]) {
-    for (const section of ['comic', 'wide', 'novel', 'download', 'faq']) {
+    for (const section of ['comic', 'reading-flow', 'flow-notes', 'wide', 'novel', 'download', 'faq']) {
       await withPage(`${width} 下方 ${section} 独立生成`, async page => {
         await open(page)
         await playing(page, 'hero-title')
         await completeActive(page)
-        const ids = { comic: ['comic-detail', 'comic-bookshelf'], wide: ['wide-stack'], novel: ['novel-tags', 'novel-library'], download: ['download-frame', 'download-description'], faq: ['faq-01', 'faq-02'] }[section]
+        const ids = { comic: ['comic-detail', 'comic-bookshelf'], 'reading-flow': ['bookmarks-shot', 'comments-shot'], 'flow-notes': ['flow-01-heading', 'flow-02-heading', 'flow-03-heading', 'flow-04-heading'], wide: ['wide-stack'], novel: ['novel-tags', 'novel-library'], download: ['download-frame', 'download-description'], faq: ['faq-01', 'faq-02'] }[section]
         for (const id of ids) assert.equal(await page.locator(groupSelector(id)).getAttribute('data-assembly-state'), 'waiting', `${id} 未见时不得提前完成`)
         for (const id of ids) {
           await scrollToGroup(page, id)
           await playing(page, id)
           const original = await snapshot(page, `${groupSelector(id)}, ${groupSelector(id)} [data-build]`)
-          if (id.startsWith('comic-') || id === 'wide-stack' || id === 'novel-library') await checkImageStages(page, id)
+          if (id.startsWith('comic-') || id.endsWith('-shot') || id === 'wide-stack' || id === 'novel-library') await checkImageStages(page, id)
           else if (id === 'download-description') await checkTextProgress(page, id, '.platform-description p', { multiline: true })
-          else await checkStroke(page, id)
+          else {
+            await checkStroke(page, id)
+            if (id.startsWith('flow-')) await checkTextProgress(page, id, `${groupSelector(id)} h3`)
+          }
           if (id === 'wide-stack') {
             assert.equal(await page.locator('.screenshot-study').getAttribute('data-rotation'), 'paused', '宽屏截图生成时不能自动轮换')
             assert.equal(await page.locator('.stack-shot').count(), 2)
@@ -586,7 +590,7 @@ export async function checkPageAssembly(browser, base) {
       await playing(page, 'hero-discover')
       await seek(page, 'hero-discover', 550)
       await checkLayers(page, 'hero-discover')
-      const button = page.getByRole('button', { name: '放大查看：漫画发现', exact: true })
+      const button = page.getByRole('button', { name: '放大查看：漫画首页', exact: true })
       if (interaction === 'pointer') await button.click()
       else { await button.focus(); await page.keyboard.press('Enter') }
       await page.locator('dialog[open]').waitFor()

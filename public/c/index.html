@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#f7f4ec" />
-  <meta name="color-scheme" content="light" />
+  <meta name="color-scheme" content="light dark" />
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/theme.css" />
   <title>漫画分享 · Kira</title>
   <meta name="description" content="好故事，分享给你。在 Kira 里打开这份漫画分享。" />
   <link rel="icon" href="/logo.png" />
@@ -12,13 +14,8 @@
   <link rel="stylesheet" href="/scrollbars.css" />
   <style>
     :root {
-      color-scheme: light;
-      --paper: #f7f4ec;
-      --ink: #242722;
-      --accent: #345c46;
-      --line: #d8d9cd;
-      --wash: #e5eadb;
-      --muted: #5e6459;
+      --line: var(--rule);
+      --wash: var(--sage);
       --serif: "Cascadia Code", "HY YouYuan", "Microsoft YaHei", sans-serif;
     }
 

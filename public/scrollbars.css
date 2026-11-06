@@ -3,6 +3,11 @@
   --scrollbar-hover: rgb(67 87 67 / 45%);
 }
 
+:root[data-theme='dark'] {
+  --scrollbar-thumb: rgb(164 196 165 / 38%);
+  --scrollbar-hover: rgb(164 196 165 / 65%);
+}
+
 * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
 
 @supports selector(::-webkit-scrollbar) {

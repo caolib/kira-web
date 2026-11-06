@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { ArrowRightLeft, Pause, Play, ZoomIn } from 'lucide-vue-next'
+import { Pause, Play, ZoomIn } from 'lucide-vue-next'
+import ScreenshotTag from './ScreenshotTag.vue'
+import ScreenshotImage from './ScreenshotImage.vue'
 
 const props = defineProps({
   shots: { type: Array, required: true },
@@ -21,13 +23,14 @@ const hovered = ref(false)
 const focused = ref(false)
 const switching = ref(false)
 const canRotate = computed(() => props.shots.length > 1 &&
-  props.shots.every(shot => ready.value.has(shot.id)) &&
+  props.shots.every(shot => ready.value.has(shot.src)) &&
   visible.value && pageVisible.value && !reducedMotion.value &&
   !props.paused && !userPaused.value && !hovered.value && !focused.value)
 let rotationTimer
 let transitionTimer
 let observer
 let preference
+const tagsFloating = computed(() => canRotate.value && !switching.value && Boolean(observer))
 
 function finishSwitch() {
   clearTimeout(transitionTimer)
@@ -117,36 +120,32 @@ onUnmounted(() => {
         class="phone-shot stack-shot"
         :class="index === selected ? 'is-front' : 'is-back'"
         :data-shot="shot.id"
+        :style="{ aspectRatio: `${shot.width} / ${shot.height}` }"
         :data-build="assemblyGroup ? 'frame' : undefined"
         :data-build-part="`frame-${shot.id}`"
         :data-build-delay="index === selected ? 340 : 160"
         :aria-label="`${index === selected ? '放大查看' : '切换到'}：${shot.label}`"
-        :tabindex="index === selected ? 0 : -1"
         @click="activateImage(index)"
       >
-        <img
+        <ScreenshotImage
+          :shot="shot"
           :data-build="assemblyGroup ? 'image' : undefined"
           :data-build-part="`image-${shot.id}`"
           :data-build-delay="index === selected ? 500 : 160"
-          :src="shot.src"
-          :alt="shot.title"
-          :width="shot.width"
-          :height="shot.height"
           loading="lazy"
-          @load="ready.add(shot.id)"
+          @load="ready.add(shot.src)"
         />
         <span v-if="index === selected" class="shot-zoom"><ZoomIn :size="20" aria-hidden="true" /></span>
       </button>
     </div>
+    <div class="stack-tags">
+      <ScreenshotTag v-for="(shot, index) in shots" :key="shot.id" :shot="shot" :floating="tagsFloating" :offset="Boolean(index)" />
+    </div>
     <figcaption class="stack-caption">
       <div class="stack-description">
         <span class="stack-count">0{{ selected + 1 }} / 0{{ shots.length }}</span>
-        <span>{{ current.title }}</span>
       </div>
       <div class="stack-actions">
-        <button class="text-link" type="button" @click="nextImage">
-          换一张 <ArrowRightLeft :size="16" aria-hidden="true" />
-        </button>
         <button
           v-if="!reducedMotion"
           class="icon-button"
@@ -167,6 +166,7 @@ onUnmounted(() => {
 .screenshot-study {
   --stack-front: translate(-10%, 0) rotate(-1.2deg);
   --stack-back: translate(13%, 8%) rotate(2.6deg) scale(.97);
+  position: relative;
   min-width: 0;
   padding: 28px;
   border: 1px solid var(--rule);
@@ -186,7 +186,6 @@ onUnmounted(() => {
   grid-area: 1 / 1;
   justify-self: center;
   width: 78%;
-  aspect-ratio: 1950 / 1262;
   min-width: 0;
   border-width: 5px;
   border-radius: 9px;
@@ -195,6 +194,9 @@ onUnmounted(() => {
 .stack-shot img { width: 100%; height: 100%; object-fit: contain; }
 .stack-shot.is-front { z-index: 2; transform: var(--stack-front); }
 .stack-shot.is-back { z-index: 1; transform: var(--stack-back); cursor: pointer; }
+.stack-tags { position: absolute; inset: 0; pointer-events: none; }
+.stack-tags :deep(.screenshot-tag) { --tag-x: 24px; --tag-y: 12px; --tag-anchor-x: 0%; max-width: calc((100% - 64px) / 2); }
+.stack-tags :deep([data-shot-caption='desktop'] .screenshot-tag) { --tag-x: calc(100% - 24px); --tag-anchor-x: -100%; }
 .stack-caption { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; }
 .stack-description { display: flex; align-items: center; gap: 14px; min-width: 0; font-size: .75rem; color: var(--accent); line-height: 1.8; }
 .stack-count { white-space: nowrap; font-size: .6875rem; color: var(--muted); }
@@ -221,6 +223,8 @@ onUnmounted(() => {
 @media (max-width: 767px) {
   .screenshot-study { padding: 14px; }
   .screenshot-stack { padding-block: 12px 38px; }
+  .stack-tags :deep(.screenshot-tag) { --tag-x: 12px; --tag-y: 0px; max-width: calc((100% - 40px) / 2); }
+  .stack-tags :deep([data-shot-caption='desktop'] .screenshot-tag) { --tag-x: calc(100% - 12px); }
   .stack-shot { border-width: 3px; border-radius: 5px; }
   .stack-caption { flex-wrap: wrap; gap: 6px 12px; }
   .stack-description { flex: 1 1 190px; align-items: flex-start; gap: 10px; }

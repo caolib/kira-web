@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdirSync } from 'node:fs'
 import { chromium } from 'playwright-core'
 import { checkPageAssembly } from './hero-assembly.mjs'
+import { checkThemes } from './theme-browser.mjs'
+import { checkHeroTags } from './hero-tags.mjs'
+import { loadScreenshots } from './screenshot-helpers.mjs'
+import { checkBackToTop } from './back-to-top.mjs'
 
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173'
 const executablePath = [
@@ -28,6 +32,9 @@ async function checkPreviewFit(page, label) {
 }
 
 try {
+  await checkBackToTop(browser, base)
+  await checkHeroTags(browser, base)
+  await checkThemes(browser, base)
   await checkPageAssembly(browser, base)
   for (const [width, height] of [[1440, 1000], [1920, 1080], [1024, 768], [768, 1024], [375, 812], [320, 740], [812, 375]]) {
     const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', isMobile: width < 768, hasTouch: width < 768 })
@@ -37,13 +44,29 @@ try {
     await page.goto(base, { waitUntil: 'networkidle' })
     await page.locator('h1').waitFor()
     await checkOverflow(page, `${width} 首页`)
-    await page.locator('.novel-section').scrollIntoViewIfNeeded()
-    await page.waitForFunction(() => [...document.querySelectorAll('.home-page img')].every(image => image.complete && image.naturalWidth > 0))
+    assert.equal(await page.title(), 'Kira — 让日常闪闪发光')
+    assert.equal(await page.locator('#hero-title').textContent(), '翻开故事，让平凡的日常闪闪发光。')
+    assert.equal(await page.locator('#reading-flow .phone-shot').count(), 2, '书签和评论截图归入同一部分')
+    assert.equal(await page.locator('#reading-flow .reading-note-row').count(), 4, '续读、合并、总结和疑似剧透沿用编号说明')
+    assert.equal(await page.locator('#reading-flow ul').count(), 0)
+    const actions = await page.locator('.nav-actions > a, .nav-actions > button').evaluateAll(elements => elements
+      .filter(element => element.getClientRects().length)
+      .map(element => { const { x, y, width, height } = element.getBoundingClientRect(); return { x, y, width, height } }))
+    assert.equal(actions.length, width < 768 ? 3 : 2, `${width} 顶部图标数量`)
+    for (const [index, action] of actions.entries()) {
+      assert.ok(action.width >= 44 && action.height >= 44, `${width} 顶部图标点击区域至少 44px`)
+      if (index === 0) continue
+      const previous = actions[index - 1]
+      assert.ok(Math.abs(action.x - previous.x - previous.width - 8) < 1, `${width} 顶部图标间距应为 8px`)
+      assert.equal(action.y, previous.y, `${width} 顶部图标应对齐`)
+    }
+    await page.locator('.site-header').screenshot({ path: `artifacts/nav-spacing-${width}.png` })
+    await loadScreenshots(page)
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
     await page.screenshot({ path: `artifacts/home-${width}.png`, fullPage: true })
     assert.equal(await page.locator('canvas').count(), 0, '新首页不应加载 3D 画布')
 
-    const previewButton = page.getByRole('button', { name: '放大查看：漫画发现', exact: true })
+    const previewButton = page.getByRole('button', { name: '放大查看：漫画首页', exact: true })
     await previewButton.click()
     await page.locator('dialog[open]').waitFor()
     await page.locator('.image-preview-image').evaluate(image => image.decode())
@@ -132,30 +155,44 @@ try {
   assert.equal((await context.request.get(`${base}/.well-known/assetlinks.json`)).status(), 200)
   await context.close()
 
-  const motionContext = await browser.newContext({ viewport: { width: 812, height: 375 }, reducedMotion: 'no-preference' })
+  const motionContext = await browser.newContext({ viewport: { width: 812, height: 375 }, reducedMotion: 'no-preference', colorScheme: 'light' })
   const motionPage = await motionContext.newPage()
   await motionPage.goto(base, { waitUntil: 'networkidle' })
   await motionPage.locator('.study-wide').scrollIntoViewIfNeeded()
-  await motionPage.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running'))
+  await motionPage.waitForFunction(() => document.getAnimations().filter(animation => animation.animationName !== 'screenshot-tag-float').every(animation => animation.playState !== 'running'))
   await motionPage.getByRole('button', { name: '放大查看：横屏跨页阅读', exact: true }).click()
   await motionPage.locator('.image-preview-image').evaluate(image => image.decode())
   await checkPreviewFit(motionPage, '横屏大图预览')
   await motionPage.screenshot({ path: 'artifacts/spread-preview-landscape.png' })
   await motionPage.keyboard.press('Escape')
   await motionPage.locator('dialog[open]').waitFor({ state: 'hidden' })
-  await motionPage.getByRole('button', { name: '换一张', exact: true }).click()
+  assert.equal(await motionPage.getByRole('button', { name: '换一张', exact: true }).count(), 0)
+  assert.equal(await motionPage.locator('.stack-shot').evaluateAll(buttons => buttons.every(button => button.tabIndex === 0)), true)
+  await motionPage.locator('.stack-shot.is-back').focus()
+  await motionPage.keyboard.press('Enter')
   await motionPage.getByRole('button', { name: '放大查看：横屏首页', exact: true }).waitFor()
   assert.equal(await motionPage.locator('.stack-shot').count(), 2, '堆叠应同时渲染两张截图')
   assert.equal(await motionPage.locator('.study-controls').count(), 0, '横屏截图不再显示 tab')
-  assert.equal(await motionPage.locator('.comic-spread .phone-shot').count(), 2, '漫画详情和书架应直接并排显示')
-  await motionPage.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running'))
-  assert.equal(await motionPage.evaluate(() => document.getAnimations().filter(animation => animation.playState === 'running').length), 0, '静止页面不应持续播放动画')
+  assert.equal(await motionPage.locator('#experience .comic-spread .phone-shot').count(), 2, '漫画详情和书架应直接并排显示')
+  await motionPage.waitForFunction(() => document.getAnimations().filter(animation => animation.animationName !== 'screenshot-tag-float').every(animation => animation.playState !== 'running'))
+  assert.equal(await motionPage.evaluate(() => document.getAnimations().filter(animation => animation.animationName !== 'screenshot-tag-float' && animation.playState === 'running').length), 0, '除可见截图标签外，静止页面不应持续播放动画')
   const beforeAutomatic = await motionPage.locator('.stack-shot.is-front').getAttribute('data-shot')
   await motionPage.mouse.move(0, 0)
   await motionPage.evaluate(() => document.activeElement?.blur())
   await motionPage.waitForFunction(() => document.querySelector('.screenshot-study')?.dataset.rotation === 'playing')
   await motionPage.waitForFunction(previous => document.querySelector('.stack-shot.is-front')?.dataset.shot !== previous, beforeAutomatic, { timeout: 7500 })
   await motionPage.waitForFunction(() => !document.querySelector('.screenshot-study.is-switching'))
+
+  for (const theme of ['dark', 'light']) {
+    await motionPage.emulateMedia({ colorScheme: theme })
+    const expected = `/screenshots/reading-edition/desktop${theme === 'dark' ? '-dark' : ''}.webp`
+    await motionPage.waitForFunction(src => document.querySelector('[data-screenshot-id="desktop"]')?.getAttribute('src') === src, expected)
+    await motionPage.locator('.screenshot-study img').evaluateAll(images => Promise.all(images.map(image => image.decode())))
+    await motionPage.waitForFunction(() => document.querySelector('.screenshot-study')?.dataset.rotation === 'playing')
+    const front = await motionPage.locator('.stack-shot.is-front').getAttribute('data-shot')
+    await motionPage.waitForFunction(previous => document.querySelector('.stack-shot.is-front')?.dataset.shot !== previous, front, { timeout: 7500 })
+    await motionPage.waitForFunction(() => !document.querySelector('.screenshot-study.is-switching'))
+  }
 
   await motionPage.getByRole('button', { name: '暂停截图自动切换', exact: true }).click()
   await motionPage.mouse.move(0, 0)

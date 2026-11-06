@@ -3,6 +3,7 @@ import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref }
 import NavBar from '@/components/NavBar.vue'
 import HomePage from '@/components/HomePage.vue'
 import SiteFooter from '@/components/SiteFooter.vue'
+import BackToTop from '@/components/BackToTop.vue'
 
 const DocsPage = defineAsyncComponent(() => import('@/components/DocsPage.vue'))
 const hash = ref(window.location.hash)
@@ -16,7 +17,7 @@ async function onHashChange() {
   const wasDocs = isDocs.value
   hash.value = window.location.hash
   previousHash = hash.value
-  document.title = isDocs.value ? '使用指南 · Kira' : 'Kira — 好故事，值得一页页读下去'
+  document.title = isDocs.value ? '使用指南 · Kira' : 'Kira — 让日常闪闪发光'
   await nextTick()
   if (isDocs.value) {
     window.scrollTo({ top: 0, behavior: 'instant' })
@@ -48,4 +49,5 @@ onUnmounted(() => window.removeEventListener('hashchange', onHashChange))
     <HomePage v-else />
   </main>
   <SiteFooter />
+  <BackToTop />
 </template>
