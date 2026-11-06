@@ -29,9 +29,8 @@ export default defineConfig({
     port: 5173,
   },
   build: {
-    rollupOptions: {
-      // 限制并发文件读取，兼容构建沙箱较低的句柄上限。
-      maxParallelFileOps: 4,
-    },
+    // 保留 Vite 7 的兼容范围，升级构建工具不提高浏览器最低版本。
+    target: ['chrome107', 'edge107', 'firefox104', 'safari16'],
+    cssTarget: ['chrome107', 'edge107', 'firefox104', 'safari16'],
   },
 })
