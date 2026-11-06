@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
-import { ArrowUp } from 'lucide-vue-next'
+import { ArrowUp } from '@/icons'
 
 const visible = ref(false)
 const syncVisibility = () => { visible.value = window.scrollY > Math.max(600, window.innerHeight * .8) }

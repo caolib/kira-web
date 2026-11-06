@@ -28,4 +28,10 @@ export default defineConfig({
     host: true,
     port: 5173,
   },
+  build: {
+    rollupOptions: {
+      // 限制并发文件读取，兼容构建沙箱较低的句柄上限。
+      maxParallelFileOps: 4,
+    },
+  },
 })

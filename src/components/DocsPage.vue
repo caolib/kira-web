@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, MessageCircle } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, MessageCircle } from '@/icons'
 import ImagePreview from './ImagePreview.vue'
 import { useDocs } from '@/composables/useDocs'
 import { site } from '@/content/site'

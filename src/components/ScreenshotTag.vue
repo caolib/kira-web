@@ -1,5 +1,5 @@
 <script setup>
-import { BookOpen } from 'lucide-vue-next'
+import { BookOpen } from '@/icons'
 
 defineProps({
   shot: { type: Object, required: true },

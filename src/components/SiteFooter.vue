@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { ArrowUpRight } from 'lucide-vue-next'
+import { ArrowUpRight } from '@/icons'
 import { site } from '@/content/site'
 import { useAssemblyMotion } from '@/composables/useAssemblyMotion'
 

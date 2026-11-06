@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ArrowUpRight, Maximize2, Minimize2, X } from 'lucide-vue-next'
+import { ArrowUpRight, Maximize2, Minimize2, X } from '@/icons'
 import { useColorScheme } from '@/composables/useColorScheme'
 import { resolveScreenshot } from '@/utils/screenshots'
 

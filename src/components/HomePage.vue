@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { ArrowDown, ArrowRight, ArrowUpRight, Asterisk, BookOpen, Bookmark, ChartNoAxesColumnIncreasing, Download, Github, MessageSquare, Monitor, Plus, ShieldCheck, Smartphone, Sparkles, WifiOff, ZoomIn } from 'lucide-vue-next'
+import { ArrowDown, ArrowRight, ArrowUpRight, Asterisk, BookOpen, Bookmark, ChartNoAxesColumnIncreasing, Download, Github, MessageSquare, Monitor, Plus, ShieldCheck, Smartphone, Sparkles, WifiOff, ZoomIn } from '@/icons'
 import { site } from '@/content/site'
 import ImagePreview from './ImagePreview.vue'
 import ScreenshotStudy from './ScreenshotStudy.vue'

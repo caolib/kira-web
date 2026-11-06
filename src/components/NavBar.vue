@@ -1,6 +1,6 @@
 <script setup>
 import { nextTick, ref, watch } from 'vue'
-import { Github, Menu, Monitor, Moon, Sun, X } from 'lucide-vue-next'
+import { Github, Menu, Monitor, Moon, Sun, X } from '@/icons'
 import { useTheme } from '@/composables/useTheme'
 import { site } from '@/content/site'
 import { useAssemblyMotion } from '@/composables/useAssemblyMotion'

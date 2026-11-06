@@ -22,6 +22,7 @@ pnpm preview
 - 使用指南：`src/content/docs/*.md`，frontmatter 的 `order` 控制顺序
 - 页面布局与动效：`src/styles/main.css`；主站与分享页共享深浅主题色板：`public/theme.css`
 - Logo：`public/logo.png`
+- 图标：统一从 `src/icons.js` 导入。该文件直接引用 lucide 的单个图标文件，避免打包时遍历整包上千个 ESM 模块（EdgeOne 构建沙箱句柄上限较低，会触发 EMFILE）；新增图标时在 `src/icons.js` 中补充对应路径
 - 最新截图：`public/screenshots/reading-edition/`，10 个界面、18 张源图，共 36 个 WebP 文件
   - `.webp` 为压缩展示图，`-full.webp` 为原尺寸无损预览；八个界面另有 `-dark.webp` / `-dark-full.webp`，只有竖屏漫画阅读和横屏跨页共用深浅截图
   - `ScreenshotImage.vue` 与 `resolveScreenshot()` 按实际主题选择展示图；打开中的预览也同步切换对应原图，不使用颜色反转模拟深色

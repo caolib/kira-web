@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { Pause, Play, ZoomIn } from 'lucide-vue-next'
+import { Pause, Play, ZoomIn } from '@/icons'
 import ScreenshotTag from './ScreenshotTag.vue'
 import ScreenshotImage from './ScreenshotImage.vue'
 
