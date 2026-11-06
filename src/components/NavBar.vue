@@ -10,7 +10,7 @@ const props = defineProps({ isDocs: Boolean, currentHash: String })
 const navRoot = ref(null)
 const { refresh, finishGroup } = useAssemblyMotion(navRoot, { belowHeader: false })
 const menuOpen = ref(false)
-const { mode, description, switching, cycleTheme } = useTheme()
+const { mode, description, switching, preloadTheme, cycleTheme } = useTheme()
 const { hidden } = useAutoHideHeader(navRoot, () => menuOpen.value || switching.value, () => props.currentHash)
 watch(() => props.currentHash, () => { menuOpen.value = false })
 watch(menuOpen, async () => { await nextTick(); refresh() })
@@ -35,7 +35,7 @@ watch(hidden, value => {
         <div class="nav-actions">
           <a class="icon-button nav-github" :href="site.repoUrl" data-assembly-group="header-github" data-build="highlight" target="_blank" rel="noopener noreferrer" aria-label="GitHub（在新标签页打开）" title="GitHub（在新标签页打开）"><Github :size="20" aria-hidden="true" /></a>
           <a class="icon-button nav-qq" :href="site.qqGroupUrl" data-assembly-group="header-qq" data-build="highlight" target="_blank" rel="noopener noreferrer" aria-label="QQ 交流群（在新标签页打开）" title="QQ 交流群（在新标签页打开）"><Qq :size="20" aria-hidden="true" /></a>
-          <button class="theme-button" type="button" data-assembly-group="header-theme" data-build="highlight" :data-mode="mode" :aria-label="description" :title="description" :aria-disabled="switching" @click="cycleTheme">
+          <button class="theme-button" type="button" data-assembly-group="header-theme" data-build="highlight" :data-mode="mode" :aria-label="description" :title="description" :aria-disabled="switching" @pointerenter="preloadTheme" @focus="preloadTheme" @pointerdown="preloadTheme" @click="cycleTheme">
             <Monitor v-if="mode === 'system'" :size="18" aria-hidden="true" />
             <Moon v-else-if="mode === 'dark'" :size="18" aria-hidden="true" />
             <Sun v-else :size="18" aria-hidden="true" />

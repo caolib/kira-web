@@ -34,6 +34,12 @@ export function useTheme() {
   document.addEventListener('visibilitychange', onVisibilityChange)
   window.addEventListener('pagehide', cancel)
 
+  function preloadTheme() {
+    if (switching.value || disposed || document.hidden) return
+    const target = theme.resolve(nextMode.value)
+    if (target !== theme.theme) void preloadScreenshotTheme(target).catch(() => {})
+  }
+
   async function cycleTheme(event) {
     if (switching.value || disposed) return
     const target = nextMode.value
@@ -45,6 +51,7 @@ export function useTheme() {
       return
     }
 
+    preloadTheme()
     const x = rect.left + rect.width / 2
     const y = rect.top + rect.height / 2
     const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))
@@ -61,7 +68,6 @@ export function useTheme() {
     }
 
     try {
-      await preloadScreenshotTheme(theme.resolve(target))
       if (cancelled || disposed) return
       root.classList.add('theme-transition')
       transition = document.startViewTransition(apply)
@@ -107,5 +113,5 @@ export function useTheme() {
     root.classList.remove('theme-transition')
   })
 
-  return { mode, description, switching, cycleTheme }
+  return { mode, description, switching, preloadTheme, cycleTheme }
 }
