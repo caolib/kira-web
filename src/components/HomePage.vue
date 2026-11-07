@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ArrowDown, ArrowRight, ArrowUpRight, Asterisk, BookOpen, Bookmark, ChartNoAxesColumnIncreasing, Download, Github, MessageSquare, Monitor, Plus, ShieldCheck, Smartphone, Sparkle, Sparkles, WifiOff, ZoomIn } from '@/icons'
 import { site } from '@/content/site'
 import ImagePreview from './ImagePreview.vue'
+import ArchitecturePicker from './ArchitecturePicker.vue'
 import ScreenshotStudy from './ScreenshotStudy.vue'
 import ScreenshotTag from './ScreenshotTag.vue'
 import ScreenshotImage from './ScreenshotImage.vue'
@@ -10,6 +11,8 @@ import { useColorScheme } from '@/composables/useColorScheme'
 import { resolveScreenshot } from '@/utils/screenshots'
 import { useAssemblyMotion } from '@/composables/useAssemblyMotion'
 import { useFloatingTags } from '@/composables/useFloatingTags'
+import { useReleaseManifest } from '@/composables/useReleaseManifest'
+import { formatAssetSize } from '@/utils/releases'
 
 const homeRoot = ref(null)
 const heroArtRoot = ref(null)
@@ -25,6 +28,13 @@ const { floating: novelFloating } = useFloatingTags(novelRoot, previewOpen)
 const { floating: readingFlowFloating } = useFloatingTags(readingFlowRoot, previewOpen)
 const canFloatTag = (floating, group) => floating && completedGroups.value.has(group)
 const platform = ref('android')
+const androidArch = ref('arm64-v8a')
+const useMirror = ref(false)
+const mirrorHost = new URL(site.downloadMirrorPrefix).hostname
+const { release, status: releaseStatus, reload: reloadRelease } = useReleaseManifest(site.releaseManifestUrl, site.repoUrl)
+const releaseAssets = computed(() => release.value?.assets.filter(asset => asset.platform === platform.value) || [])
+const selectedAsset = computed(() => (platform.value === 'android' && releaseAssets.value.find(asset => asset.arch === androidArch.value)) || releaseAssets.value[0] || null)
+watch(releaseStatus, () => finishGroup('download-frame'), { flush: 'sync' })
 const scheme = useColorScheme()
 const [discover, reader, novels, novelReader, detail, bookshelf, desktop, spread, bookmarks, comments] = site.screenshots
   .map(shot => computed(() => resolveScreenshot(shot, scheme.value)))
@@ -178,8 +188,26 @@ const readingFlowNotes = [
           <label :class="{ selected: platform === 'android' }"><input v-model="platform" type="radio" name="platform" value="android" /><Smartphone :size="20" aria-hidden="true" /> Android</label>
           <label :class="{ selected: platform === 'windows' }"><input v-model="platform" type="radio" name="platform" value="windows" /><Monitor :size="20" aria-hidden="true" /> Windows</label>
         </fieldset>
-        <div class="platform-description" aria-live="polite" data-assembly-group="download-description"><h3 data-build="lines">{{ platform === 'android' ? '把阅读装进口袋。' : '在大一点的屏幕上，接着读。' }}</h3><p data-build="lines" data-build-delay="180">{{ platform === 'android' ? '在发布页选择适合设备的 APK 安装包。多数较新的 Android 手机可选择 arm64 版本。' : '在发布页选择 Windows 安装包，下载后按提示安装。具体兼容要求请查看对应版本说明。' }}</p></div>
-        <a class="button download-cta" :href="site.releasesUrl" target="_blank" rel="noopener noreferrer"><Download :size="18" aria-hidden="true" /> 前往 GitHub 下载 <ArrowUpRight :size="18" aria-hidden="true" /></a>
+        <div class="platform-description" aria-live="polite" data-assembly-group="download-description"><h3 data-build="lines">{{ platform === 'android' ? '把阅读装进口袋。' : '在大一点的屏幕上，接着读。' }}</h3><p data-build="lines" data-build-delay="180">{{ platform === 'android' ? '直接下载适合设备的 APK 安装包。多数较新的 Android 手机可选择 ARM64 版本。' : '下载 Windows 安装包，按提示安装，就可以接着读。具体兼容要求请查看对应版本说明。' }}</p></div>
+        <div class="release-downloads" :aria-busy="releaseStatus === 'loading'">
+          <div class="release-heading">
+            <p class="release-status" role="status">
+              <template v-if="releaseStatus === 'loading'">正在读取最新版本…</template>
+              <template v-else-if="releaseStatus === 'error'">暂时无法读取安装包信息。</template>
+              <template v-else>最新版本 {{ release.tag }}<span v-if="!releaseAssets.length"> · 暂无此平台安装包</span></template>
+            </p>
+            <button v-if="selectedAsset" class="download-source-toggle" :class="{ 'is-mirror': useMirror }" type="button" @click="useMirror = !useMirror">{{ useMirror ? '使用原链接' : '使用镜像' }}</button>
+          </div>
+          <button v-if="releaseStatus === 'error'" class="release-retry text-link" type="button" @click="reloadRelease">重新读取 <ArrowRight :size="16" aria-hidden="true" /></button>
+          <div v-if="selectedAsset" class="release-assets">
+            <ArchitecturePicker v-if="platform === 'android'" :model-value="selectedAsset.arch" :options="releaseAssets" @update:model-value="androidArch = $event" />
+            <a class="button download-cta" :href="(useMirror ? site.downloadMirrorPrefix : '') + selectedAsset.url" :title="selectedAsset.name" target="_blank" rel="noopener noreferrer">
+              <Download :size="18" aria-hidden="true" />
+              <span class="download-asset-copy"><span>{{ useMirror ? '镜像下载' : '下载' }} {{ platform === 'android' ? 'APK · ' : '' }}{{ selectedAsset.label }}</span><small>{{ formatAssetSize(selectedAsset.size) }} · {{ useMirror ? mirrorHost : 'GitHub' }}</small></span>
+              <ArrowUpRight :size="18" aria-hidden="true" />
+            </a>
+          </div>
+        </div>
         <div class="download-help"><a href="#docs/getting-started">安装说明 <ArrowUpRight :size="14" aria-hidden="true" /></a><a :href="site.qqGroupUrl" target="_blank" rel="noopener noreferrer">其他平台？到群里聊聊 <ArrowUpRight :size="14" aria-hidden="true" /></a></div>
       </div>
     </section>

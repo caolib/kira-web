@@ -3,6 +3,7 @@ import { loadScreenshots } from './screenshot-helpers.mjs'
 import { site } from '../src/content/site.js'
 import { captureScreenshot, gotoReady, waitForPageReady } from './browser-helpers.mjs'
 import { browserViewports, quickViewports } from './browser-options.mjs'
+import { mockReleaseManifest } from './release-fixture.js'
 
 async function checkOverflow(page, label) {
   const size = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }))
@@ -21,6 +22,7 @@ export async function checkBrowserSmoke(browser, base, { quick = false } = {}) {
     const page = await context.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
+    await mockReleaseManifest(page)
     await gotoReady(page, base)
     await page.locator('h1').waitFor()
     await checkOverflow(page, `${width} 首页`)
@@ -97,8 +99,32 @@ export async function checkBrowserSmoke(browser, base, { quick = false } = {}) {
 
     await page.getByRole('link', { name: '下载 Kira', exact: true }).first().click()
     await page.locator('#download').waitFor()
+    await page.locator('.download-cta').waitFor()
+    const architecture = page.getByRole('combobox', { name: /安装包架构/ })
+    assert.equal(await architecture.innerText(), 'ARM64')
+    assert.doesNotMatch(await page.locator('.release-assets').innerText(), /安装包架构|推荐/)
+    assert.equal(await page.locator('.release-assets a').count(), 1, '只显示当前架构的下载链接')
+    const originalDownload = await page.locator('.download-cta').getAttribute('href')
+    assert.match(originalDownload, /^https:\/\/github\.com\/caolib\/kira\/releases\/download\/.*-arm64-v8a\.apk$/)
+    await page.getByRole('button', { name: '使用镜像', exact: true }).click()
+    assert.equal(await page.locator('.download-cta').getAttribute('href'), site.downloadMirrorPrefix + originalDownload)
+    assert.match(await page.locator('.download-cta').innerText(), /镜像下载/)
+    assert.match(await page.locator('.download-cta').innerText(), /gh-proxy\.org/)
+    await page.getByRole('button', { name: '使用原链接', exact: true }).click()
+    assert.equal(await page.locator('.download-cta').getAttribute('href'), originalDownload)
+    await architecture.click()
+    await page.getByRole('option', { name: /ARMv7/ }).click()
+    assert.match(await page.locator('.download-cta').getAttribute('href'), /-armeabi-v7a\.apk$/)
+    await architecture.press('End')
+    await architecture.press('Enter')
+    assert.match(await page.locator('.download-cta').getAttribute('href'), /-x86_64\.apk$/)
+    await architecture.press('ArrowDown')
+    await architecture.press('Escape')
+    assert.equal(await architecture.getAttribute('aria-expanded'), 'false')
     await page.locator('input[value="windows"]').check()
     assert.match(await page.locator('.platform-description').innerText(), /大一点的屏幕/)
+    assert.equal(await architecture.count(), 0)
+    assert.match(await page.locator('.download-cta').getAttribute('href'), /-windows-x64-setup\.exe$/)
     await page.locator('.faq-list summary').first().click()
     assert.equal(await page.locator('.faq-list details[open]').count(), 1)
 

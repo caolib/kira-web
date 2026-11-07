@@ -15,6 +15,8 @@ export const site = {
   tagline: '漫画与轻小说，读得自在。',
   repoUrl: 'https://github.com/caolib/kira',
   releasesUrl: 'https://github.com/caolib/kira/releases',
+  releaseManifestUrl: 'https://gh-proxy.org/https://github.com/caolib/kira/releases/latest/download/release.json',
+  downloadMirrorPrefix: 'https://gh-proxy.org/',
   qqGroupUrl: 'https://qm.qq.com/q/rezw7xWuK4',
   qqGroupNumber: '1025321453',
   logo: '/logo.png',

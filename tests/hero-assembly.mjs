@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
 import { captureScreenshot, gotoReady } from './browser-helpers.mjs'
+import { mockReleaseManifest } from './release-fixture.js'
 
 const groupSelector = id => `[data-assembly-group="${id}"]`
 const frame = page => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
 
 // 暂停真实 WAAPI 动画以检查任意时刻；不伪造状态、关键帧或生产清理逻辑。
 async function installProbe(page, { fontScale = false, pause = true } = {}) {
+  await mockReleaseManifest(page)
   await page.addInitScript(({ fontScale, pause }) => {
     const probe = window.__assemblyTest = { pause, animations: [], starts: [], groups: new Set() }
     const original = Element.prototype.animate
@@ -416,6 +418,7 @@ export async function checkPageAssembly(browser, base) {
       const staticContext = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', isMobile: width < 768, hasTouch: width < 768 })
       try {
         const staticPage = await staticContext.newPage()
+        await mockReleaseManifest(staticPage)
         await gotoReady(staticPage, base)
         sameLayout(await snapshot(page, selector), await snapshot(staticPage, selector), `${width} 与无动画布局一致`)
       } finally { await staticContext.close() }
@@ -460,7 +463,7 @@ export async function checkPageAssembly(browser, base) {
           await page.keyboard.press('Space')
           assert.match(await page.locator('.platform-description').innerText(), /大一点的屏幕/)
           assert.equal(await page.locator('.platform-description [data-assembly-concealed]').count(), 0)
-          assert.match(await page.locator('.download-cta').getAttribute('href'), /github\.com\/caolib\/kira\/releases/)
+          assert.match(await page.locator('.download-cta').getAttribute('href'), /^https:\/\/github\.com\/caolib\/kira\/releases\/download\/.*-windows-x64-setup\.exe$/)
         }
         if (section === 'faq') {
           await page.locator('.faq-list summary').first().focus()

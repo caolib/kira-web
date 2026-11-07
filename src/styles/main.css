@@ -178,11 +178,33 @@ h2 { font-size: clamp(2rem, 3.15vw, 2.875rem); line-height: 1.4; font-weight: 70
 .platform-picker label.selected { background: var(--sage); color: var(--accent); border-color: var(--accent); }
 .platform-picker label:has(:focus-visible) { outline: 3px solid var(--focus); outline-offset: 4px; }
 .platform-picker input { position: absolute; opacity: 0; width: 100%; height: 100%; inset: 0; margin: 0; }
-.platform-description { min-height: 143px; padding-top: 26px; }
+.platform-description { padding-top: 26px; }
 .platform-description h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 10px; }
 .platform-description p { font-size: 0.8125rem; line-height: 1.8; color: var(--muted); }
-.download-cta { width: 100%; margin-top: 24px; gap: 9px; font-size: 0.875rem; }
+.release-downloads { padding-top: 14px; }
+.release-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.download-source-toggle { min-height: 44px; padding: 8px 13px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); color: var(--ink); font-size: 0.8125rem; }
+.download-source-toggle:hover, .download-source-toggle.is-mirror { border-color: var(--accent); background: var(--sage); color: var(--accent); }
+.release-status { min-height: 24px; color: var(--muted); font-size: 0.8125rem; overflow-wrap: anywhere; }
+.release-retry { padding: 0; background: transparent; color: var(--accent); }
+.release-assets { display: grid; gap: 8px; margin-top: 10px; }
+.architecture-picker { position: relative; display: grid; gap: 6px; min-width: 0; }
+.architecture-trigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 4px; color: var(--ink); background: var(--paper); text-align: left; font-size: 0.875rem; }
+.architecture-trigger:hover, .architecture-trigger[aria-expanded='true'] { border-color: var(--accent); }
+.architecture-trigger svg { flex-shrink: 0; color: var(--muted); }
+.architecture-trigger[aria-expanded='true'] svg { transform: rotate(180deg); }
+.architecture-options { position: absolute; z-index: 5; inset: calc(100% + 6px) 0 auto; display: grid; gap: 2px; margin: 0; padding: 5px; list-style: none; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); box-shadow: 0 8px 24px rgb(var(--shadow-rgb) / 12%); }
+.architecture-options li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 10px; border-radius: 2px; font-size: 0.875rem; cursor: pointer; }
+.architecture-options li.active { color: var(--accent); background: var(--sage); }
+.architecture-options li[aria-selected='true'] { color: var(--accent); }
+.architecture-options svg { flex-shrink: 0; }
+.architecture-option-copy { display: grid; gap: 3px; min-width: 0; }
+.architecture-option-copy small { color: var(--muted); font-size: 0.75rem; line-height: 1.6; }
+.download-cta { width: 100%; gap: 12px; font-size: 0.875rem; text-align: left; }
+.download-cta svg { flex-shrink: 0; }
 .download-cta svg:last-child { margin-left: auto; }
+.download-asset-copy { display: grid; gap: 2px; min-width: 0; }
+.download-asset-copy small { font-size: 0.75rem; line-height: 1.5; font-weight: 400; }
 .download-help { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; margin-top: 12px; }
 .download-help a { display: flex; align-items: center; gap: 3px; font-size: 0.6875rem; color: var(--muted); min-height: 44px; }
 .download-help a:hover { color: var(--accent); }
@@ -381,7 +403,6 @@ h2 { font-size: clamp(2rem, 3.15vw, 2.875rem); line-height: 1.4; font-weight: 70
   .download-section { grid-template-columns: 1fr; gap: 28px; }
   .download-copy > p:not(.eyebrow) { font-size: 1rem; margin-block: 20px 8px; }
   .download-panel { padding: 23px; }
-  .platform-description { min-height: 144px; }
   .platform-description p { font-size: 0.9375rem; }
   .download-help a { font-size: 0.75rem; }
   .faq-section { grid-template-columns: 1fr; gap: 22px; padding-block: 42px 64px; }
