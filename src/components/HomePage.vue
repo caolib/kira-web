@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { ArrowDown, ArrowRight, ArrowUpRight, Asterisk, BookOpen, Bookmark, ChartNoAxesColumnIncreasing, Download, Github, MessageSquare, Monitor, Plus, ShieldCheck, Smartphone, Sparkle, Sparkles, WifiOff, ZoomIn } from '@/icons'
+import { ArrowDown, ArrowRight, ArrowUpRight, Asterisk, BookOpen, Bookmark, ChartNoAxesColumnIncreasing, Download, Github, MessageSquare, Monitor, Plus, ShieldCheck, Smartphone, Sparkle, Sparkles, WifiOff } from '@/icons'
 import { site } from '@/content/site'
 import ImagePreview from './ImagePreview.vue'
 import ArchitecturePicker from './ArchitecturePicker.vue'
@@ -72,14 +72,12 @@ const readingFlowNotes = [
           <figure class="hero-shot hero-shot-discover">
             <button class="phone-shot hero-phone hero-phone-discover" data-assembly-group="hero-discover" data-build="frame" :aria-label="`放大查看：${discover.label}`" @click="selectedShot = discover">
               <ScreenshotImage :shot="discover" data-build="image" fetchpriority="high" />
-              <span class="shot-zoom"><ZoomIn :size="17" aria-hidden="true" /></span>
             </button>
             <ScreenshotTag as="figcaption" :shot="discover" :icon="ChartNoAxesColumnIncreasing" assembly-group="hero-discover-caption" :floating="canFloatTag(heroFloating, 'hero-discover')" />
           </figure>
           <figure class="hero-shot hero-shot-reader">
             <button class="phone-shot hero-phone hero-phone-reader" data-assembly-group="hero-reader" data-build="frame" data-build-delay="120" :aria-label="`放大查看：${reader.label}`" @click="selectedShot = reader">
               <ScreenshotImage :shot="reader" data-build="image" data-build-delay="120" />
-              <span class="shot-zoom"><ZoomIn :size="17" aria-hidden="true" /></span>
             </button>
             <ScreenshotTag as="figcaption" :shot="reader" assembly-group="hero-reader-caption" :floating="canFloatTag(heroFloating, 'hero-reader')" offset />
           </figure>
@@ -105,7 +103,6 @@ const readingFlowNotes = [
           <figure v-for="(shot, index) in [detail, bookshelf]" :key="shot.id">
             <button class="phone-shot comic-phone" :data-assembly-group="index ? 'comic-bookshelf' : 'comic-detail'" data-build="frame" :aria-label="`放大查看：${shot.label}`" @click="selectedShot = shot">
               <ScreenshotImage :shot="shot" data-build="image" loading="lazy" />
-              <span class="shot-zoom"><ZoomIn :size="18" aria-hidden="true" /></span>
             </button>
             <ScreenshotTag as="figcaption" :shot="shot" :icon="index ? Bookmark : BookOpen" :assembly-group="`${index ? 'comic-bookshelf' : 'comic-detail'}-caption`" :floating="canFloatTag(comicFloating, index ? 'comic-bookshelf' : 'comic-detail')" :offset="Boolean(index)" />
           </figure>
@@ -130,7 +127,6 @@ const readingFlowNotes = [
           <figure v-for="(shot, index) in [bookmarks, comments]" :id="shot.id" :key="shot.id">
             <button class="phone-shot comic-phone" :data-assembly-group="`${shot.id}-shot`" data-build="frame" :aria-label="`放大查看：${shot.label}`" @click="selectedShot = shot">
               <ScreenshotImage :shot="shot" data-build="image" loading="lazy" />
-              <span class="shot-zoom"><ZoomIn :size="18" aria-hidden="true" /></span>
             </button>
             <ScreenshotTag as="figcaption" :shot="shot" :icon="index ? MessageSquare : Bookmark" :assembly-group="`${shot.id}-shot-caption`" :floating="canFloatTag(readingFlowFloating, `${shot.id}-shot`)" :offset="Boolean(index)" />
           </figure>
@@ -164,11 +160,11 @@ const readingFlowNotes = [
         </div>
         <div ref="novelRoot" class="novel-spread">
           <figure>
-            <button class="phone-shot novel-phone" data-assembly-group="novel-library" data-build="frame" :aria-label="`放大查看：${novels.label}`" @click="selectedShot = novels"><ScreenshotImage :shot="novels" data-build="image" loading="lazy" /><span class="shot-zoom"><ZoomIn :size="18" aria-hidden="true" /></span></button>
+            <button class="phone-shot novel-phone" data-assembly-group="novel-library" data-build="frame" :aria-label="`放大查看：${novels.label}`" @click="selectedShot = novels"><ScreenshotImage :shot="novels" data-build="image" loading="lazy" /></button>
             <ScreenshotTag as="figcaption" :shot="novels" :icon="Bookmark" assembly-group="novel-library-caption" :floating="canFloatTag(novelFloating, 'novel-library')" />
           </figure>
           <figure>
-            <button class="phone-shot novel-phone novel-page" data-assembly-group="novel-reader" data-build="frame" :aria-label="`放大查看：${novelReader.label}`" @click="selectedShot = novelReader"><ScreenshotImage :shot="novelReader" data-build="image" loading="lazy" /><span class="shot-zoom"><ZoomIn :size="18" aria-hidden="true" /></span></button>
+            <button class="phone-shot novel-phone novel-page" data-assembly-group="novel-reader" data-build="frame" :aria-label="`放大查看：${novelReader.label}`" @click="selectedShot = novelReader"><ScreenshotImage :shot="novelReader" data-build="image" loading="lazy" /></button>
             <ScreenshotTag as="figcaption" :shot="novelReader" assembly-group="novel-reader-caption" :floating="canFloatTag(novelFloating, 'novel-reader')" offset />
           </figure>
         </div>

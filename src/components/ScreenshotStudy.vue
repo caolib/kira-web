@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { Pause, Play, ZoomIn } from '@/icons'
+import { Pause, Play } from '@/icons'
 import ScreenshotTag from './ScreenshotTag.vue'
 import ScreenshotImage from './ScreenshotImage.vue'
 
@@ -135,7 +135,6 @@ onUnmounted(() => {
           loading="lazy"
           @load="ready.add(shot.src)"
         />
-        <span v-if="index === selected" class="shot-zoom"><ZoomIn :size="20" aria-hidden="true" /></span>
       </button>
     </div>
     <div class="stack-tags">

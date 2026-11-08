@@ -112,8 +112,6 @@ h1 { margin-top: 29px; font-size: clamp(3rem, 4.55vw, 4.375rem); font-weight: 80
 .phone-shot img { width: 100%; height: auto; }
 :root[data-theme='dark'] :is(.phone-shot img[data-dim-dark], .prose-docs img) { filter: brightness(.85); }
 .phone-shot:hover { box-shadow: 0 18px 40px rgb(var(--shadow-rgb) / 20%), 0 0 0 2px var(--sage-strong); }
-.shot-zoom { position: absolute; right: 8px; bottom: 8px; display: grid; place-items: center; width: 32px; height: 32px; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 50%; opacity: 0; transition: opacity var(--duration); }
-.phone-shot:hover .shot-zoom, .phone-shot:focus-visible .shot-zoom { opacity: 1; }
 .hero-shot { width: min(100%, var(--hero-phone-max, 224px)); min-width: 0; align-self: start; justify-self: center; }
 .hero-shot-reader { margin-top: 44px; }
 .hero-phone { width: 100%; }
@@ -373,8 +371,6 @@ h2 { font-size: clamp(2rem, 3.15vw, 2.875rem); line-height: 1.4; font-weight: 70
   .art-topline { font-size: 0.5625rem; }
   .art-bottomline { font-size: 0.625rem; padding-top: 8px; }
   .art-bottomline > span:last-child { display: inline-flex; font-size: 0.5625rem; }
-  .shot-zoom { opacity: 1; width: 27px; height: 27px; right: 5px; bottom: 5px; }
-  .shot-zoom svg { width: 14px; height: 14px; }
   .screenshot-tag-slot { --tag-float: -3px; }
   .screenshot-tag { gap: 6px; padding: 7px 8px; font-size: 12px; }
   [data-shot-caption='discover'] .screenshot-tag:first-child { --tag-y: -18px; }
