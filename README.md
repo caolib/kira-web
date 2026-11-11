@@ -110,7 +110,7 @@ pnpm test:browser --list      # 列出分组；--help 查看参数
 
 ## 漫画分享落地页
 
-- `public/c/index.html` 是独立静态页，不经过 Vue 路由。正式地址：`https://kirakira.dpdns.org/c/?w={pathWord}`。
+- `public/c/index.html` 是独立静态页，不经过 Vue 路由。正式地址：`https://kira.caolib.qzz.io/c/?w={pathWord}`。
 - `public/c/share-link.js` 对标识进行完整 ASCII 校验，对齐 App 解码行为，不截断非法后缀。
 - 合法链接自动尝试一次 `kira://open/comic/{pathWord}`，同时提供手动打开与 GitHub Releases 下载；不声称能检测安装或已成功打开。
 - 保留 `/comic/{pathWord}` 的解析兼容，但**未配置该旧路径的部署重写**。
