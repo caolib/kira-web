@@ -9,3 +9,6 @@ dist
 .codex
 .zcode
 artifacts/
+
+.agents
+skills-lock.json
