@@ -5,6 +5,7 @@ import { useTheme } from '@/composables/useTheme'
 import { site } from '@/content/site'
 import { useAssemblyMotion } from '@/composables/useAssemblyMotion'
 import { useAutoHideHeader } from '@/composables/useAutoHideHeader'
+import { useQqGroupDialog } from '@/composables/useQqGroupDialog'
 
 const props = defineProps({ isDocs: Boolean, currentHash: String })
 const navRoot = ref(null)
@@ -12,6 +13,7 @@ const { refresh, finishGroup } = useAssemblyMotion(navRoot, { belowHeader: false
 const menuOpen = ref(false)
 const { mode, description, switching, preloadTheme, cycleTheme } = useTheme()
 const { hidden } = useAutoHideHeader(navRoot, () => menuOpen.value || switching.value, () => props.currentHash)
+const { open: qqOpen, openDialog: openQqDialog } = useQqGroupDialog()
 watch(() => props.currentHash, () => { menuOpen.value = false })
 watch(menuOpen, async () => { await nextTick(); refresh() })
 watch(hidden, value => {
@@ -34,7 +36,7 @@ watch(hidden, value => {
         </nav>
         <div class="nav-actions">
           <a class="icon-button nav-github" :href="site.repoUrl" data-assembly-group="header-github" data-build="highlight" target="_blank" rel="noopener noreferrer" aria-label="GitHub（在新标签页打开）" title="GitHub（在新标签页打开）"><Github :size="20" aria-hidden="true" /></a>
-          <a class="icon-button nav-qq" :href="site.qqGroupUrl" data-assembly-group="header-qq" data-build="highlight" target="_blank" rel="noopener noreferrer" aria-label="QQ 交流群（在新标签页打开）" title="QQ 交流群（在新标签页打开）"><Qq :size="20" aria-hidden="true" /></a>
+          <button class="icon-button nav-qq" type="button" data-assembly-group="header-qq" data-build="highlight" aria-haspopup="dialog" :aria-expanded="qqOpen" aria-label="加入 QQ 交流群" title="加入 QQ 交流群" @click="openQqDialog"><Qq :size="20" aria-hidden="true" /></button>
           <button class="theme-button" type="button" data-assembly-group="header-theme" data-build="highlight" :data-mode="mode" :aria-label="description" :title="description" :aria-disabled="switching" @pointerenter="preloadTheme" @focus="preloadTheme" @pointerdown="preloadTheme" @click="cycleTheme">
             <Monitor v-if="mode === 'system'" :size="18" aria-hidden="true" />
             <Moon v-else-if="mode === 'dark'" :size="18" aria-hidden="true" />

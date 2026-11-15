@@ -17,8 +17,10 @@ export const site = {
   releasesUrl: 'https://github.com/caolib/kira/releases',
   releaseManifestUrl: 'https://gh-proxy.org/https://github.com/caolib/kira/releases/latest/download/release.json',
   downloadMirrorPrefix: 'https://gh-proxy.org/',
-  qqGroupUrl: 'https://qm.qq.com/q/rezw7xWuK4',
-  qqGroupNumber: '1025321453',
+  qqGroups: [
+    { label: '交流一群', url: 'https://qm.qq.com/q/rezw7xWuK4' },
+    { label: '交流二群', url: 'https://qm.qq.com/q/AHEQsmL4cw' },
+  ],
   logo: '/logo.png',
   screenshots: [
     screenshot('discover', '漫画首页', '漫画首页的推荐与排行榜', 656, 1317, ['双源切换', '发现下一部喜欢']),

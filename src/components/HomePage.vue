@@ -12,9 +12,11 @@ import { resolveScreenshot } from '@/utils/screenshots'
 import { useAssemblyMotion } from '@/composables/useAssemblyMotion'
 import { useFloatingTags } from '@/composables/useFloatingTags'
 import { useReleaseManifest } from '@/composables/useReleaseManifest'
+import { useQqGroupDialog } from '@/composables/useQqGroupDialog'
 import { formatAssetSize } from '@/utils/releases'
 
 const homeRoot = ref(null)
+const { open: qqOpen, openDialog: openQqDialog } = useQqGroupDialog()
 const heroArtRoot = ref(null)
 const comicRoot = ref(null)
 const novelRoot = ref(null)
@@ -204,7 +206,7 @@ const readingFlowNotes = [
             </a>
           </div>
         </div>
-        <div class="download-help"><a href="#docs/getting-started">安装说明 <ArrowUpRight :size="14" aria-hidden="true" /></a><a :href="site.qqGroupUrl" target="_blank" rel="noopener noreferrer">其他平台？到群里聊聊 <ArrowUpRight :size="14" aria-hidden="true" /></a></div>
+        <div class="download-help"><a href="#docs/getting-started">安装说明 <ArrowUpRight :size="14" aria-hidden="true" /></a><button type="button" aria-haspopup="dialog" :aria-expanded="qqOpen" @click="openQqDialog">其他平台？到群里聊聊 <ArrowUpRight :size="14" aria-hidden="true" /></button></div>
       </div>
     </section>
 

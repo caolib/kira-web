@@ -3,9 +3,10 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, MessageCircle } from '@/icons'
 import ImagePreview from './ImagePreview.vue'
 import { useDocs } from '@/composables/useDocs'
-import { site } from '@/content/site'
+import { useQqGroupDialog } from '@/composables/useQqGroupDialog'
 
 const props = defineProps({ docId: String })
+const { open: qqOpen, openDialog: openQqDialog } = useQqGroupDialog()
 const { docs, currentId, currentDoc, select } = useDocs()
 const article = ref(null)
 const previewShot = ref(null)
@@ -142,9 +143,9 @@ function goHeading(id) {
           <MessageCircle :size="22" :stroke-width="1.5" aria-hidden="true" />
           <h2>还需要一点帮助？</h2>
           <p>和同样喜欢阅读的人<br />一起聊聊。</p>
-          <a :href="site.qqGroupUrl" class="text-link" target="_blank" rel="noopener noreferrer">
+          <button type="button" class="text-link" aria-haspopup="dialog" :aria-expanded="qqOpen" @click="openQqDialog">
             加入交流群 <ArrowUpRight :size="14" aria-hidden="true" />
-          </a>
+          </button>
         </div>
       </aside>
       <details ref="directory" class="mobile-doc-directory" @keydown.esc.prevent="closeDirectory">

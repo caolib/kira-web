@@ -4,6 +4,7 @@ import NavBar from '@/components/NavBar.vue'
 import HomePage from '@/components/HomePage.vue'
 import SiteFooter from '@/components/SiteFooter.vue'
 import BackToTop from '@/components/BackToTop.vue'
+import QqGroupDialog from '@/components/QqGroupDialog.vue'
 
 const DocsPage = defineAsyncComponent(() => import('@/components/DocsPage.vue'))
 const hash = ref(window.location.hash)
@@ -50,4 +51,5 @@ onUnmounted(() => window.removeEventListener('hashchange', onHashChange))
   </main>
   <SiteFooter />
   <BackToTop />
+  <QqGroupDialog />
 </template>

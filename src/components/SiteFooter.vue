@@ -3,9 +3,11 @@ import { ref } from 'vue'
 import { ArrowUpRight } from '@/icons'
 import { site } from '@/content/site'
 import { useAssemblyMotion } from '@/composables/useAssemblyMotion'
+import { useQqGroupDialog } from '@/composables/useQqGroupDialog'
 
 const footerRoot = ref(null)
 useAssemblyMotion(footerRoot)
+const { open: qqOpen, openDialog: openQqDialog } = useQqGroupDialog()
 </script>
 
 <template>
@@ -17,7 +19,7 @@ useAssemblyMotion(footerRoot)
         <nav aria-label="页脚导航">
           <a href="#docs/getting-started" data-assembly-group="footer-docs" data-build="highlight"><span data-build="lines">使用指南</span></a>
           <a :href="site.repoUrl" data-assembly-group="footer-github" data-build="highlight" target="_blank" rel="noopener noreferrer"><span data-build="lines">GitHub</span> <ArrowUpRight :size="14" aria-hidden="true" /></a>
-          <a :href="site.qqGroupUrl" data-assembly-group="footer-community" data-build="highlight" target="_blank" rel="noopener noreferrer"><span data-build="lines">加入交流群</span> <ArrowUpRight :size="14" aria-hidden="true" /></a>
+          <button type="button" data-assembly-group="footer-community" data-build="highlight" aria-haspopup="dialog" :aria-expanded="qqOpen" @click="openQqDialog"><span data-build="lines">加入交流群</span> <ArrowUpRight :size="14" aria-hidden="true" /></button>
         </nav>
       </div>
       <div class="footer-bottom" data-assembly-group="footer-rule" data-build="rule">
