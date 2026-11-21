@@ -15,11 +15,12 @@ export const site = {
   tagline: '漫画与轻小说，读得自在。',
   repoUrl: 'https://github.com/caolib/kira',
   releasesUrl: 'https://github.com/caolib/kira/releases',
+  iosReleasesUrl: 'https://github.com/caolib/kira/releases/tag/ios-build',
   releaseManifestUrl: 'https://gh-proxy.org/https://github.com/caolib/kira/releases/latest/download/release.json',
   downloadMirrorPrefix: 'https://gh-proxy.org/',
   qqGroups: [
-    { label: '交流一群', url: 'https://qm.qq.com/q/rezw7xWuK4' },
-    { label: '交流二群', url: 'https://qm.qq.com/q/AHEQsmL4cw' },
+    { label: '交流一群', number: '1025321453', url: 'https://qm.qq.com/q/rezw7xWuK4' },
+    { label: '交流二群', number: '307887718', url: 'https://qm.qq.com/q/AHEQsmL4cw' },
   ],
   logo: '/logo.png',
   screenshots: [
@@ -36,7 +37,7 @@ export const site = {
   ],
   faqs: [
     { question: 'Kira 是什么？', answer: 'Kira 是漫画与轻小说阅读客户端，支持访问拷贝漫画、热辣漫画等第三方内容。它不是内容平台，内容与服务可用性取决于对应来源。' },
-    { question: '可以在哪些设备上使用？', answer: '主要维护 Android，GitHub Releases 也提供 Windows 安装包。iOS 等其他平台的构建情况可到交流群了解；社区构建不等同于官方维护与发布。' },
+    { question: '可以在哪些设备上使用？', answer: '主要维护 Android 与 iOS，GitHub Releases 也提供 Windows 安装包。iOS 提供未签名 IPA，需自行重签后安装；其他平台的构建情况可到交流群了解。' },
     { question: '朋友分享的漫画，要怎么打开？', answer: '安装 Kira 后，用系统浏览器打开分享链接，再点击“在 Kira 中打开”。如果聊天应用内打不开，换用系统浏览器即可再次尝试。' },
     { question: '遇到登录或使用问题怎么办？', answer: '先查看使用指南中的下载、登录与 AI 配置说明。如果仍然无法解决，可以到 GitHub 提交问题，或加入 QQ 交流群交流。请勿公开账号令牌等敏感信息。' },
   ],

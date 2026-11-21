@@ -170,9 +170,9 @@ h2 { font-size: clamp(2rem, 3.15vw, 2.875rem); line-height: 1.4; font-weight: 70
 .download-section { display: grid; grid-template-columns: 1.1fr 1fr; gap: 80px; align-items: center; }
 .download-copy > p:not(.eyebrow) { color: var(--muted); font-size: 0.9375rem; margin-block: 24px 20px; }
 .download-panel { background: var(--surface); padding: 32px; border: 1px solid var(--rule); border-top: 3px solid var(--accent); border-radius: 3px; }
-.platform-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0; margin: 0; border: 0; min-width: 0; }
+.platform-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 0; margin: 0; border: 0; min-width: 0; }
 .platform-picker legend { margin-bottom: 14px; font-size: 0.75rem; color: var(--muted); }
-.platform-picker label { position: relative; display: flex; justify-content: center; align-items: center; gap: 9px; padding: 13px 8px; border: 1px solid var(--rule); border-radius: 3px; font-size: 0.875rem; cursor: pointer; }
+.platform-picker label { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 9px; padding: 13px 8px; border: 1px solid var(--rule); border-radius: 3px; font-size: 0.875rem; cursor: pointer; }
 .platform-picker label.selected { background: var(--sage); color: var(--accent); border-color: var(--accent); }
 .platform-picker label:has(:focus-visible) { outline: 3px solid var(--focus); outline-offset: 4px; }
 .platform-picker input { position: absolute; opacity: 0; width: 100%; height: 100%; inset: 0; margin: 0; }
@@ -399,6 +399,7 @@ h2 { font-size: clamp(2rem, 3.15vw, 2.875rem); line-height: 1.4; font-weight: 70
   .download-section { grid-template-columns: 1fr; gap: 28px; }
   .download-copy > p:not(.eyebrow) { font-size: 1rem; margin-block: 20px 8px; }
   .download-panel { padding: 23px; }
+  .platform-picker label { flex-direction: column; gap: 6px; }
   .platform-description p { font-size: 0.9375rem; }
   .download-help a, .download-help button { font-size: 0.75rem; }
   .faq-section { grid-template-columns: 1fr; gap: 22px; padding-block: 42px 64px; }
@@ -440,16 +441,30 @@ h2 { font-size: clamp(2rem, 3.15vw, 2.875rem); line-height: 1.4; font-weight: 70
 }
 
 /* QQ 群选择 */
-.qq-dialog { width: min(420px, calc(100% - 32px)); padding: 0; border: 1px solid var(--rule); border-radius: 6px; color: var(--ink); background: var(--surface); box-shadow: var(--shadow-print); }
+.qq-dialog { width: min(420px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 0; border: 1px solid var(--rule); border-radius: 6px; color: var(--ink); background: var(--surface); box-shadow: var(--shadow-print); }
 .qq-dialog[open] { animation: qq-dialog-in 160ms ease-out; }
 .qq-dialog::backdrop { background: rgb(var(--shadow-rgb) / 42%); animation: qq-backdrop-in 160ms ease-out; }
 .qq-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 16px 8px 24px; }
 .qq-dialog-head h2 { font-size: 1.125rem; font-weight: 700; }
 .qq-dialog-close { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 4px; background: transparent; }
 .qq-dialog-close:hover { color: var(--accent); background: var(--sage); }
-.qq-group-options { display: grid; gap: 10px; padding: 8px 24px 24px; }
-.qq-group-options a { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 12px 16px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); font-size: 0.9375rem; font-weight: 600; }
-.qq-group-options a:hover { color: var(--accent); border-color: var(--accent); background: var(--sage); }
+.qq-group-options { display: grid; gap: 12px; padding: 8px 20px 0; }
+.qq-group-card { min-width: 0; padding: 16px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); }
+.qq-group-info { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.qq-group-logo { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 6px; color: var(--accent); background: var(--sage); }
+.qq-group-details { flex: 1 1 10rem; min-width: 0; }
+.qq-group-details h3 { margin-bottom: 4px; font-size: 0.9375rem; font-weight: 600; }
+.qq-group-number { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.qq-group-number > span { color: var(--muted); font-size: 0.75rem; }
+.qq-group-number input { width: 11ch; max-width: 100%; min-width: 0; padding: 0; border: 0; border-radius: 2px; color: var(--ink); background: transparent; font-family: var(--font-mono); font-size: 1rem; line-height: 1.5; user-select: text; }
+.qq-group-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.qq-group-actions > * { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); font-size: 0.8125rem; font-weight: 600; transition: color var(--duration), background-color var(--duration), border-color var(--duration); }
+.qq-group-actions svg { flex-shrink: 0; }
+.qq-group-copy:hover, .qq-group-copy.copied { color: var(--accent); border-color: var(--accent); background: var(--sage); }
+.qq-group-copy[aria-disabled='true'] { cursor: wait; opacity: .65; }
+.qq-group-actions .qq-group-join { color: var(--on-accent); border-color: var(--accent); background: var(--accent); }
+.qq-group-actions .qq-group-join:hover { color: var(--accent); background: var(--sage); }
+.qq-copy-status { min-height: 3.5em; margin: 0; padding: 10px 20px 16px; color: var(--muted); font-size: 0.75rem; line-height: 1.6; overflow-wrap: anywhere; }
 @keyframes qq-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
 @keyframes qq-backdrop-in { from { opacity: 0; } }
 

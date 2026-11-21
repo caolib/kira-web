@@ -48,7 +48,8 @@ python -I scripts/build_fonts.py --chinese /path/to/HYYouYuan-55W.ttf --latin /p
 
 ## 页面与交互
 
-- 首页下载区由用户浏览器读取最新 Release 附件 `release.json`（`schema_version = 1`），地址配置在 `src/content/site.js`。GitHub 附件没有浏览器跨域许可，当前通过支持 CORS 的 `gh-proxy.org` 获取清单；安装包默认使用 GitHub 原始直链，可通过按钮切换镜像下载，镜像前缀配置在同文件的 `downloadMirrorPrefix`。不调用 GitHub API、不增加后端或仓库同步任务。
+- 首页下载区提供 Android、iOS、Windows 三个设备选项。iOS 下载按钮固定打开 <https://github.com/caolib/kira/releases/tag/ios-build>，不绑定具体 IPA 附件，也不依赖最新版本清单；IPA 未签名，页面提示需自行重签后安装。
+- Android 与 Windows 下载区由用户浏览器读取最新 Release 附件 `release.json`（`schema_version = 1`），地址配置在 `src/content/site.js`。GitHub 附件没有浏览器跨域许可，当前通过支持 CORS 的 `gh-proxy.org` 获取清单；安装包默认使用 GitHub 原始直链，可通过按钮切换镜像下载，镜像前缀配置在同文件的 `downloadMirrorPrefix`。不调用 GitHub API、不增加后端或仓库同步任务。
   - 成功后显示版本、架构和文件大小；Android 默认 ARM64，通过与页面同色的自定义下拉切换其他可用架构，只显示所选安装包的下载按钮；设备适配说明仅显示在展开选项内，不额外显示架构标签或推荐字样。下拉支持方向键、Home/End、Enter、Esc、Tab 和点击外部关闭；Windows 显示 x64 安装包。只有清单中通过校验、属于当前仓库和版本的链接才会展示。
   - 轻量校验包括协议、版本与标签、构建号、发布页地址、平台与架构、文件名一致性、原始下载地址、正整数文件大小及 SHA-256 字段格式；异常条目不显示，同名文件去重。SHA-256 只校验字段格式，不代表已验证实际安装包内容或发布者签名。
   - 请求超时为 12 秒；网络、跨域、HTTP、JSON 或协议错误时不显示安装包链接、不回退到 GitHub 发布页，允许手动重试。不保存旧清单作失败兜底；离开首页中止请求并清理定时器。镜像不可用时同样隐藏下载入口，分享页的独立下载兜底保持不变。
@@ -57,7 +58,7 @@ python -I scripts/build_fonts.py --chinese /path/to/HYYouYuan-55W.ttf --latin /p
 - 右下角低调的回顶按钮由 `BackToTop.vue` 提供，滚动超过 600px 或视口高度的 80%（取较大值）才出现；保留 44px 点击区域和安全区，回顶后焦点返回导航，不改变路由。减少动态效果时立即回顶
 - 指南：`#docs/getting-started`、`#docs/login`、`#docs/AI`；兼容旧 `#docs` 入口
 - 顶部栏在首页和指南、所有屏幕尺寸下随滚动方向自动隐藏/显示：顶部区域始终显示，向下累计 16px 隐藏，向上累计 8px 恢复；约 180ms 上下滑动，减少动态效果时立即切换。手机菜单展开、悬停、键盘使用或主题切换期间保持显示，回顶/导航焦点可恢复；图片预览的滚动位置还原不触发误切换。仅移动内层，保留外层高度、锚点留白与生成观察器边界，不推动正文。
-- 顶部 GitHub、QQ 交流群和主题入口均为纯图标按钮，QQ 位于 GitHub 右侧，点击后弹出对话框选择 `site.qqGroups` 中的交流群并在新标签页打开；桌面与手机直接可见；首页保留下载入口。QQ 品牌图标使用本地 Simple Icons（CC0）SVG，颜色跟随主题。主题按“自动 → 深色 → 浅色”循环，默认自动并实时跟随系统，使用 `localStorage` 的 `kira:theme` 保存偏好；存储不可用不影响当前页切换
+- 顶部 GitHub、QQ 交流群和主题入口均为纯图标按钮，QQ 位于 GitHub 右侧，点击后弹出对话框，群卡片显示 QQ Logo、名称与群号；可一键复制群号或在新标签页加入群聊，数据由 `site.qqGroups` 的 `label`、`number`、`url` 维护。复制优先使用 Clipboard API，不支持或失败时尝试传统复制；仍失败则选中群号供手动复制。复制成功反馈不关闭弹窗，关闭/卸载清理反馈定时器；桌面与手机直接可见；首页保留下载入口。QQ 品牌图标使用本地 Simple Icons（CC0）SVG，颜色跟随主题。主题按“自动 → 深色 → 浅色”循环，默认自动并实时跟随系统，使用 `localStorage` 的 `kira:theme` 保存偏好；存储不可用不影响当前页切换
 - `public/theme.js` 在首屏绘制前恢复配色，主站与独立分享页共用初始化与色板，并同步跨标签页选择及浏览器 `theme-color`；分享页不另设主题按钮
 - 手动改变实际明暗时，通过 View Transition + WAAPI 将新主题从按钮中心向外展开，两个方向均为 1000ms、`ease-out`；键盘操作使用同一圆心。实际明暗不变、系统更新、减少动态效果或 API 不可用时直接切换；动画异常安全降级，连点不叠加，结束或离页后清理快照动画和监听
 - 深色主题为柔和深灰；八组应用界面使用原生深色截图、不叠加亮度滤镜。仅共用素材的两个漫画阅读界面及指南配图压暗至 85%；所有放大预览保持对应原图亮度，Logo 不变

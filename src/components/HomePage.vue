@@ -12,11 +12,9 @@ import { resolveScreenshot } from '@/utils/screenshots'
 import { useAssemblyMotion } from '@/composables/useAssemblyMotion'
 import { useFloatingTags } from '@/composables/useFloatingTags'
 import { useReleaseManifest } from '@/composables/useReleaseManifest'
-import { useQqGroupDialog } from '@/composables/useQqGroupDialog'
 import { formatAssetSize } from '@/utils/releases'
 
 const homeRoot = ref(null)
-const { open: qqOpen, openDialog: openQqDialog } = useQqGroupDialog()
 const heroArtRoot = ref(null)
 const comicRoot = ref(null)
 const novelRoot = ref(null)
@@ -30,6 +28,11 @@ const { floating: novelFloating } = useFloatingTags(novelRoot, previewOpen)
 const { floating: readingFlowFloating } = useFloatingTags(readingFlowRoot, previewOpen)
 const canFloatTag = (floating, group) => floating && completedGroups.value.has(group)
 const platform = ref('android')
+const platformDescription = computed(() => ({
+  android: { title: '把阅读装进口袋。', text: '直接下载适合设备的 APK 安装包。多数较新的 Android 手机可选择 ARM64 版本。' },
+  ios: { title: '把阅读装进口袋。', text: '前往 GitHub 下载 iOS 安装包。IPA 未签名，需自行重签后安装。' },
+  windows: { title: '在大一点的屏幕上，接着读。', text: '下载 Windows 安装包，按提示安装，就可以接着读。具体兼容要求请查看对应版本说明。' },
+})[platform.value])
 const androidArch = ref('arm64-v8a')
 const useMirror = ref(false)
 const mirrorHost = new URL(site.downloadMirrorPrefix).hostname
@@ -64,7 +67,7 @@ const readingFlowNotes = [
           <a class="button" href="#download">下载 Kira <ArrowDown :size="18" aria-hidden="true" /></a>
           <a class="text-link" href="#experience">翻开看看 <ArrowRight :size="18" aria-hidden="true" /></a>
         </div>
-        <p class="hero-platforms" data-assembly-group="hero-platforms" data-build="lines"><Smartphone :size="14" aria-hidden="true" /> Android <span>/</span><Monitor :size="15" aria-hidden="true" /> Windows</p>
+        <p class="hero-platforms" data-assembly-group="hero-platforms" data-build="lines"><Smartphone :size="14" aria-hidden="true" /> Android <span>/</span> iOS <span>/</span><Monitor :size="15" aria-hidden="true" /> Windows</p>
       </div>
       <div class="hero-art">
         <div class="art-topline" data-assembly-group="hero-art-top" data-build="rule"><span data-build="lines" data-build-delay="180">THE READING EDITION</span><span data-build="lines" data-build-delay="280">VOL. 01</span></div>
@@ -184,10 +187,18 @@ const readingFlowNotes = [
         <fieldset class="platform-picker" @change.capture="finishGroup('download-description')">
           <legend>选择你的设备</legend>
           <label :class="{ selected: platform === 'android' }"><input v-model="platform" type="radio" name="platform" value="android" /><Smartphone :size="20" aria-hidden="true" /> Android</label>
+          <label :class="{ selected: platform === 'ios' }"><input v-model="platform" type="radio" name="platform" value="ios" /><Smartphone :size="20" aria-hidden="true" /> iOS</label>
           <label :class="{ selected: platform === 'windows' }"><input v-model="platform" type="radio" name="platform" value="windows" /><Monitor :size="20" aria-hidden="true" /> Windows</label>
         </fieldset>
-        <div class="platform-description" aria-live="polite" data-assembly-group="download-description"><h3 data-build="lines">{{ platform === 'android' ? '把阅读装进口袋。' : '在大一点的屏幕上，接着读。' }}</h3><p data-build="lines" data-build-delay="180">{{ platform === 'android' ? '直接下载适合设备的 APK 安装包。多数较新的 Android 手机可选择 ARM64 版本。' : '下载 Windows 安装包，按提示安装，就可以接着读。具体兼容要求请查看对应版本说明。' }}</p></div>
-        <div class="release-downloads" :aria-busy="releaseStatus === 'loading'">
+        <div class="platform-description" aria-live="polite" data-assembly-group="download-description"><h3 data-build="lines">{{ platformDescription.title }}</h3><p data-build="lines" data-build-delay="180">{{ platformDescription.text }}</p></div>
+        <div v-if="platform === 'ios'" class="release-downloads">
+          <a class="button download-cta" :href="site.iosReleasesUrl" target="_blank" rel="noopener noreferrer">
+            <Download :size="18" aria-hidden="true" />
+            <span class="download-asset-copy"><span>下载 iOS 安装包</span><small>IPA · GitHub</small></span>
+            <ArrowUpRight :size="18" aria-hidden="true" />
+          </a>
+        </div>
+        <div v-else class="release-downloads" :aria-busy="releaseStatus === 'loading'">
           <div class="release-heading">
             <p class="release-status" role="status">
               <template v-if="releaseStatus === 'loading'">正在读取最新版本…</template>
@@ -206,7 +217,7 @@ const readingFlowNotes = [
             </a>
           </div>
         </div>
-        <div class="download-help"><a href="#docs/getting-started">安装说明 <ArrowUpRight :size="14" aria-hidden="true" /></a><button type="button" aria-haspopup="dialog" :aria-expanded="qqOpen" @click="openQqDialog">其他平台？到群里聊聊 <ArrowUpRight :size="14" aria-hidden="true" /></button></div>
+        <div class="download-help"><a href="#docs/getting-started">安装说明 <ArrowUpRight :size="14" aria-hidden="true" /></a></div>
       </div>
     </section>
 
